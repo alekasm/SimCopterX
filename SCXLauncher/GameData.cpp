@@ -311,7 +311,7 @@ void GameData::CreateGlobalInitFunction(DetourMaster *master, GameData::Version 
 	*/
 
 	//The detour function:
-	Instructions instructions(DWORD(function_entry + 0x77));               //The detour jmp will overwrite mov[esi+4044h], eax  
+	Instructions instructions(DWORD(function_entry + 0x77));               //The detour jmp will overwrite mov[esi+4044h],  eax  
 	instructions.jmp(master->GetNextDetour());                             //jmp <detour> 
 	instructions << ByteArray{ 0x3E, 0x8D, 0x86, 0x44, 0x40, 0x00, 0x00 }; //lea eax, [esi+4044h]
 	instructions << BYTE(0x50);                                            //push eax
@@ -382,8 +382,17 @@ void GameData::initialize(PEINFO info)
 	version_11sc.functions[RES_LOOKUP] = 0x4610A0;
 
 	version_classics.functions[SCREEN_CLIP] = 0x430E40; 
-	version_11sc.functions[SCREEN_CLIP] = 0x42E130;     
-	
+	version_11sc.functions[SCREEN_CLIP] = 0x42E130; 
+
+
+	//---------- IN PROGRESS
+	version_classics.functions[BITDEPTH_CHECK] = 0x45E870;	//+0x170
+	version_classics.functions[VERSIONS] = 0x45F210;		//Sets the versions for random things like glide, OS, game?
+	version_classics.functions[GRAPHICS_INIT] = 0x41C2E0;	//Conditional on whether to initialize glide or DDraw, use to patch DDraw
+	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
+
+
+
 	//---------- Below here contains completely new functions/variables
 	version_classics.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 	version_11sc.global_dwords[MY_SLEEP] = master->base_location + 0x4;
