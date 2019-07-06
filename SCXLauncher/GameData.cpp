@@ -390,6 +390,8 @@ void GameData::initialize(PEINFO info)
 	version_classics.functions[VERSIONS] = 0x45F210;		//Sets the versions for random things like glide, OS, game?
 	version_classics.functions[GRAPHICS_INIT] = 0x41C2E0;	//Conditional on whether to initialize glide or DDraw, use to patch DDraw
 	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
+	version_classics.functions[GFX_SOUND_INIT] = 0x45DEC0;	//+36F (45E22F), if not windowed mode - calls DirectX fullscreen
+	version_classics.functions[ADJUST_WINDOW] = 0x421400;	//Positions the window (LPRECT) in the center of your screen
 
 
 
