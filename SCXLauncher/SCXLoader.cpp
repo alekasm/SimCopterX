@@ -12,6 +12,7 @@ namespace
 {
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
+	const int SCX_VERSION = 4;
 
 	std::map<std::string, GameData::Version> version_hashes = 
 	{
@@ -271,6 +272,13 @@ bool VerifyPatchedGame()
 		return false;
 	}
 
+	if (patched_scxversion != SCX_VERSION)
+	{
+		ClearPatchFile(std::string("You currently have SimCopterX Version " + std::to_string(SCX_VERSION) + " however the game was \npreviously patched using Version " +
+			std::to_string(patched_scxversion) + ". Please repatch the game."));
+		return false;
+	}
+
 	return true;
 }
 
@@ -525,42 +533,44 @@ bool SCXLoader::VerifyInstallation()
 {
 	std::string format_location(SimCopterGameRootDirectory);
 	std::replace(format_location.begin(), format_location.end(), '\\', '/');
-	std::vector<std::string> path = split_string('/', format_location);
-	std::string drive = path.at(0);
-	OutputDebugString(std::string("SimCopter is installed on drive " + drive + "\n").c_str());
-	std::regex regex_drive("([A-Za-z]{1})(:{1})");
-	if (!std::regex_match(drive, regex_drive)) //AKA C:, F:, E:, etc.
-		return false;
+	//std::vector<std::string> path = split_string('/', format_location);
 
-	std::string sys_dir = drive + "/Windows/System/";
+	std::string system_dir = format_location + "setup/System/";
+	std::string smacker_dir = format_location + "setup/smacker/";
+	std::string game_dir = format_location + "SimCopter/";
 
-	if (!PathFileExistsA(sys_dir.c_str()))
+	if (!PathFileExistsA(game_dir.c_str()))
 	{
-		ShowMessage("SimCopterX Verification", std::string("Your " + drive + " drive does not have a Windows/System directory.\nEnsure you installed SimCopter on a valid hard drive."));
-		return false;
+		OutputDebugString(std::string("[Verify Install] " + system_dir + "does not exist\n").c_str());
+		return true;
 	}
-	
-	std::vector<std::string> dlls = { "glide.dll", "sst1init.dll" };
-	for (std::string dll : dlls)
+
+	std::vector<std::pair<std::string, std::string>> dll_pairs =
 	{
-		std::string dll_dir = sys_dir + dll;
+		std::pair<std::string, std::string>(system_dir, "glide.dll"),
+		std::pair<std::string, std::string>(system_dir, "sst1init.dll"),
+		std::pair<std::string, std::string>(smacker_dir, "smackw32.dll")
+	};
+
+	for (std::pair<std::string, std::string> dll : dll_pairs)
+	{
+		std::string dll_dir = game_dir + dll.second;
 		OutputDebugString(std::string("Checking for " + dll_dir + "\n").c_str());
-		if (!PathFileExistsA(dll_dir.c_str()))
+		if (PathFileExistsA(dll_dir.c_str())) //already exists, nothing to do
+			continue;
+		std::string dll_copy = dll.first + dll.second;
+		if (!PathFileExistsA(dll_copy.c_str()))
 		{
-			std::string dll_copy = SimCopterGameRootDirectory + "setup/System/" + dll;
-			if (!PathFileExistsA(dll_copy.c_str()))
-			{
-				ShowMessage("SimCopterX Verification", std::string("Couldn't find the required dll at: \n" + dll_copy).c_str());
-				return false;
-			}
-			BOOL copy_result = CopyFileA(dll_copy.c_str(), dll_dir.c_str(), FALSE);
-			if (!copy_result)
-			{
-				ShowMessage("SimCopterX Verification", "Failed to copy required dll files from SimCopter installation directory to Windows/System");
-				return false;
-			}
-			OutputDebugString(std::string("Copied " + dll_copy + " to: " + dll_dir + "\n").c_str());
+			OutputDebugString(std::string("Couldn't find the required dll at: " + dll_copy + "\n").c_str());
+			continue;
 		}
+		BOOL copy_result = CopyFileA(dll_copy.c_str(), dll_dir.c_str(), FALSE);
+		if (!copy_result)
+		{
+			OutputDebugString("Failed to copy the file..\n");
+			continue;
+		}
+		OutputDebugString(std::string("Copied " + dll_copy + " to: " + dll_dir + "\n").c_str());
 	}
 	return true;
 }
