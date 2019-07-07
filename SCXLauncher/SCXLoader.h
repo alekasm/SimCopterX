@@ -27,7 +27,8 @@ public:
 	static std::string GetSimCopterGameLocation();
 	static bool CreatePatchedGame(std::string game_location);
 	static bool StartSCX(int sleep_time, int resolution_mode, bool fullscreen);
-	static const int SCX_VERSION = 3;
+	static const int SCX_VERSION = 4;
 private:
 	static bool InitializeGameData(std::string);
+	static bool GetFileCompatability(std::string game_location);
 };

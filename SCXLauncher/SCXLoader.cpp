@@ -37,6 +37,24 @@ namespace
 	GameData::Version game_version;
 }
 
+bool SCXLoader::GetFileCompatability(std::string game_location)
+{
+	HKEY hKey;
+	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_READ, &hKey);
+	CHAR lpData[512];
+	DWORD lpcbData = sizeof(lpData);
+	std::string format_location(game_location);
+	std::replace(format_location.begin(), format_location.end(), '/', '\\');
+	LSTATUS status = RegQueryValueEx(hKey, format_location.c_str(), 0, NULL, (LPBYTE)lpData, &lpcbData);
+	if (status != ERROR_SUCCESS)
+	{
+		OutputDebugString(std::string("Registry Error: " + std::to_string((int)status) + "\n").c_str());
+		OutputDebugString(std::string(format_location + "\n").c_str());
+		return false;
+	}
+	return std::string(lpData).find("256COLOR") != std::string::npos;
+}
+
 void ShowMessage(std::string title, std::string message)
 {	
 	MessageBox(NULL, message.c_str(), title.c_str(), MB_OK);
@@ -87,7 +105,7 @@ BOOL VerifyOriginalGame(std::string source)
 bool CreatePatchFile()
 {
 	std::string hash_reference = CreateMD5Hash(SimCopterGameLocation);
-	OutputDebugString(std::string("Created the hash reference: " + hash_reference).c_str());
+	OutputDebugString(std::string("Created the hash reference: " + hash_reference + "\n").c_str());
 	patched_hash = hash_reference;
 	std::ofstream patch_stream(SCXDirectory(patch_file));
 	if (patch_stream.is_open())
@@ -275,6 +293,20 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 		ShowMessage("SimCopterX", "Failed to start the game.\n Make sure the game isn't running or opened in another application");
 		return false;
 	}
+
+	if (!fullscreen && !GetFileCompatability(SimCopterGameLocation))
+	{
+		const char *message =
+			"You must run the SimCopter.exe in 8-bit color to use Windowed mode!\n\n"
+			"1. Right Click SimCopter.exe -> Properties\n"
+			"2. Select the 'Compatibility' tab\n"
+			"3. Enable 'Reduced color mode' and select 8-bit/256 color\n"
+			"4. Ensure all other options are NOT selected\n"
+			"5. Click apply, then try again";
+		ShowMessage("SimCopterX", std::string(message));
+		return false;
+	}
+	
 
 	//Just to keep things explicit, might make this dynamic in the future
 	int dword_5017D0 = resolution_mode;

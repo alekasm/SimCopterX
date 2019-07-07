@@ -163,9 +163,6 @@
     <Image Include="..\..\..\..\Desktop\icon_small.ico" />
     <Image Include="..\..\..\..\Desktop\logo2.bmp" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="notes.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

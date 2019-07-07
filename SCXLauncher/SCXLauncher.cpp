@@ -157,7 +157,7 @@ void initialize(HINSTANCE hInstance)
 	Button_SetCheck(fsRadioButton, BST_CHECKED);
 
 	wsRadioButton = CreateWindow(
-		"Button", "Windowed (Glitchy)", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
+		"Button", "Windowed", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
 		10, 175, 150, 25, settingsHwnd, NULL,
 		NULL, NULL);
 
