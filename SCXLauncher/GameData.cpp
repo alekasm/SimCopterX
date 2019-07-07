@@ -21,12 +21,38 @@ bool GameData::PatchGame(std::string game_exe, GameData::Version version)
 	CreateFlapUIFunction(master, version);
 	CreateChopperClipFunction(master, version);
 	CreateScreenClipFunction(master, version);
+	CreateDDrawPaletteFunction(master, version);
 	return Patcher::Patch(master, game_exe);
 }
 
 DWORD GameData::GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type)
 {
 	return master->GetFileOffset(games[version].global_dwords[dword_type]);
+}
+
+void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameData::Version version)
+{
+	//Always use GetSystemPaletteEntries flow instead of manually generating the palette entries
+	//Previously chose flow based on windowed vs fullscreen (windowed manually generated?)
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::DDRAW_PALETTE);
+	DWORD rewrite_start;
+	switch (version)
+	{
+	case Version::V11SC:
+		rewrite_start = function_entry + 0x32;
+		break;
+	case Version::VCLASSICS:
+		rewrite_start = function_entry + 0x3F;
+		break;
+	}
+
+	Instructions instructions(rewrite_start);
+	instructions << ByteArray{ 0xEB, 0x07 }; //jmp short 0x07 bytes
+	instructions << ByteArray{ 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }; //Clean up debugging view
+
+	size_t is_size = instructions.GetInstructions().size();
+	printf("[DDraw Palette] Generated a total of %d bytes\n", is_size);
+	master->instructions.push_back(instructions);
 }
 
 void GameData::CreateScreenClipFunction(DetourMaster *master, GameData::Version version)
@@ -384,6 +410,9 @@ void GameData::initialize(PEINFO info)
 	version_classics.functions[SCREEN_CLIP] = 0x430E40; 
 	version_11sc.functions[SCREEN_CLIP] = 0x42E130; 
 
+	version_classics.functions[DDRAW_PALETTE] = 0x41CD40;
+	version_11sc.functions[DDRAW_PALETTE] = 0x41C9E0;
+
 
 	//---------- IN PROGRESS
 	version_classics.functions[BITDEPTH_CHECK] = 0x45E870;	//+0x170
@@ -391,7 +420,7 @@ void GameData::initialize(PEINFO info)
 	version_classics.functions[GRAPHICS_INIT] = 0x41C2E0;	//Conditional on whether to initialize glide or DDraw, use to patch DDraw
 	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
 	version_classics.functions[GFX_SOUND_INIT] = 0x45DEC0;	//+36F (45E22F), if not windowed mode - calls DirectX fullscreen
-	version_classics.functions[ADJUST_WINDOW] = 0x421400;	//Positions the window (LPRECT) in the center of your screen
+	version_classics.functions[ADJUST_WINDOW] = 0x421400;	//Positions the window (LPRECT) in the center of your screen	
 
 
 

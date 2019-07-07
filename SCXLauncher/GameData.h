@@ -14,7 +14,7 @@ public:
 	enum FunctionType { MAIN_LOOP, GLOBAL_INIT, FLAP_UI, CHOPPER_UI, 
 						CD_CHECK, CHOPPER_CLIP, RES_LOOKUP, DS_SLEEP, 
 						SCREEN_CLIP, BITDEPTH_CHECK, VERSIONS, GRAPHICS_INIT, 
-						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW };
+						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE };
 
 	enum DWORDType { RES_TYPE, MY_SLEEP };
 	enum Version { VCLASSICS, V11SC };
@@ -32,5 +32,5 @@ private:
 	static void CreateFlapUIFunction(DetourMaster *master, GameData::Version version);
 	static void CreateChopperClipFunction(DetourMaster *master, GameData::Version version);
 	static void CreateScreenClipFunction(DetourMaster *master, GameData::Version version);
-
+	static void CreateDDrawPaletteFunction(DetourMaster *master, GameData::Version version);
 };
