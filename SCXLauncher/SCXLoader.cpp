@@ -4,7 +4,7 @@ std::string LastErrorString();
 std::string GetResponseCode(LPCSTR);
 std::string CreateMD5Hash(std::string);
 std::vector<std::string> split_string(char delim, std::string split_string);
-BOOL VerifyOriginalGame(std::string source);
+MessageValue VerifyOriginalGame(std::string source);
 void SetGameDirectories(std::string full_exe_location);
 
 
@@ -12,7 +12,7 @@ namespace
 {
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
-	const int SCX_VERSION = 4;
+	const int SCX_VERSION = 5;
 
 	std::map<std::string, GameData::Version> version_hashes = 
 	{
@@ -36,6 +36,7 @@ namespace
 
 	PEINFO peinfo;
 	GameData::Version game_version;
+	FileVersion fileVersion;
 }
 
 bool SCXLoader::GetFileCompatability(std::string game_location)
@@ -56,17 +57,6 @@ bool SCXLoader::GetFileCompatability(std::string game_location)
 	return std::string(lpData).find("256COLOR") != std::string::npos;
 }
 
-void ShowMessage(std::string title, std::string message)
-{	
-	MessageBox(NULL, message.c_str(), title.c_str(), MB_OK);
-	OutputDebugString(message.c_str());
-}
-
-std::string LastErrorString()
-{
-	return std::string("SimCopterX Error (" + std::to_string(GetLastError()) + ")");
-}
-
 int SCXLoader::GetPatchedSCXVersion()
 {
 	return patched_scxversion;
@@ -82,25 +72,43 @@ std::string SCXDirectory(std::string sappend)
 	return std::string(SimCopterXDirectory).append(sappend);
 }
 
-BOOL VerifyOriginalGame(std::string source)
+MessageValue VerifyOriginalGame(std::string source)
 {
 	if (!PathFileExistsA(source.c_str()))
 	{
-		OutputDebugString(std::string("The game does not exist at " + source + "\n").c_str());
-		return FALSE;
+		return MessageValue(FALSE, "The game does not exist at " + source + "\n");
 	}
 
 	std::string hash_check = CreateMD5Hash(source);
 	auto it = version_hashes.find(hash_check);
+
+	StringFileInfoMap sfiMap;
+	MessageValue result = fileVersion.GetSCFileVersionInfo(source.c_str(), sfiMap);
+	std::string sfi_result = "";
+	if (result.Value)
+	{
+		sfi_result += "\nFile Information\n";
+		for (auto sfit = sfiMap.begin(); sfit != sfiMap.end(); sfit++)
+		{
+			sfi_result += sfit->first + ": " + sfit->second + "\n";
+		}
+	}
+	else
+	{
+		sfi_result += "\nUnable to query the SimCopter.exe File Information because: \n";
+		sfi_result += result.Message;
+	}	
 	
 	if(it == version_hashes.end())
 	{
-		OutputDebugString(std::string("This version of SimCopter is unsupported, please submit this version for analysis!\n").c_str());
-		OutputDebugString(std::string("Hash:" + hash_check + "\n").c_str());
-		return FALSE;
+		std::string no_match = "SimCopterX does not have a matching hash stored in the database of patched versions.\n";
+		no_match += "Hash: " + hash_check + "\n";
+		no_match += sfi_result;
+		return MessageValue(FALSE, no_match);
 	}
+
 	game_version = it->second;
-	return TRUE;
+	return MessageValue(TRUE, sfi_result);
 }
 
 bool CreatePatchFile()
@@ -153,11 +161,17 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 	If the game we selected is an original, copy it to our SimCopterX directory
 	*/
 	bool using_backup_copy = false;
-	if (!VerifyOriginalGame(game_location))
+	MessageValue verifyCurrentValue;
+
+	if (!(verifyCurrentValue = VerifyOriginalGame(game_location)).Value)
 	{
-		if (!VerifyOriginalGame(SCXDirectory("SimCopter.exe")))
+		if (!VerifyOriginalGame(SCXDirectory("SimCopter.exe")).Value)
 		{
-			ShowMessage("SimCopterX Error", "The game you specified isn't an original/supported, and SimCopterX doesn't have a backup.");
+			std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. SimCopterX ";
+			message_body += "could not find an original backup. If this is an official version of the game, please submit the following ";
+			message_body += "file information so it can be supported.\n\n";
+			message_body += verifyCurrentValue.Message;
+			ShowMessage("SimCopterX Error", message_body);
 			return false;
 		}	
 		using_backup_copy = true;

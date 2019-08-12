@@ -142,6 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileVersion.cpp" />
     <ClCompile Include="GameData.cpp" />
     <ClCompile Include="Patcher.cpp" />
     <ClCompile Include="SCXLauncher.cpp" />
@@ -149,8 +150,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DetourMaster.h" />
+    <ClInclude Include="FileVersion.h" />
     <ClInclude Include="GameData.h" />
     <ClInclude Include="Instructions.h" />
+    <ClInclude Include="Message.h" />
     <ClInclude Include="Patcher.h" />
     <ClInclude Include="PEINFO.h" />
     <ClInclude Include="resource.h" />

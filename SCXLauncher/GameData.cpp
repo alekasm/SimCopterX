@@ -417,6 +417,7 @@ void GameData::initialize(PEINFO info)
 	//---------- IN PROGRESS
 	version_classics.functions[BITDEPTH_CHECK] = 0x45E870;	//+0x170
 	version_classics.functions[VERSIONS] = 0x45F210;		//Sets the versions for random things like glide, OS, game?
+	version_11sc.functions[VERSIONS] = 0x45C0F0;
 	version_classics.functions[GRAPHICS_INIT] = 0x41C2E0;	//Conditional on whether to initialize glide or DDraw, use to patch DDraw
 	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
 	version_classics.functions[GFX_SOUND_INIT] = 0x45DEC0;	//+36F (45E22F), if not windowed mode - calls DirectX fullscreen

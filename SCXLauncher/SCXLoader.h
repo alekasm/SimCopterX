@@ -11,6 +11,8 @@
 #include <regex>
 #include "Patcher.h"
 #include "GameData.h"
+#include "FileVersion.h"
+#include "Message.h"
 
 #pragma comment(lib, "urlmon.lib")
 #pragma comment(lib, "Shlwapi.lib")

@@ -10,7 +10,7 @@ BOOL FileVersion::Initialize()
 	//VerQueryValueA
 	if ((hInst = LoadLibrary("Version.dll")) == NULL)
 	{
-		printf("Could not load version.dll! \n");
+		//ShowMessage("SimCopterX Error - Version", "Could not load Version.dll (System 32)! \n");
 		return FALSE;
 	}
 
@@ -21,25 +21,23 @@ BOOL FileVersion::Initialize()
 	return TRUE;
 }
 
-BOOL FileVersion::GetSCFileVersionInfo(LPCSTR filename, StringFileInfoMap& out)
+MessageValue FileVersion::GetSCFileVersionInfo(LPCSTR filename, StringFileInfoMap& out)
 {
 	if (!Initialize())
-		return FALSE;
+		return MessageValue(FALSE, "Could not load Version.dll (System 32)!\n");
 
 	DWORD flags = FILE_VER_GET_NEUTRAL | FILE_VER_GET_LOCALISED;
 	DWORD size = _GetFileVersionInfoSizeExA2(flags, filename, NULL);
 	if (size == 0)
 	{
-		printf("Failed to get the file version info size! Error Code: %d\n", GetLastError());
-		return FALSE;
+		return MessageValue(FALSE, "Failed to get the file version info size! Error Code: " + std::to_string(GetLastError()) + "\n");
 	}
 
 	LPVOID pVersionInfo = new BYTE[size];
 	BOOL result = _GetFileVersionInfoExA2(flags, filename, NULL, size, pVersionInfo);
 	if (!result)
 	{
-		printf("Failed to get the file version info! Error Code: %d\n", GetLastError());
-		return FALSE;
+		return MessageValue(FALSE, "Failed to get the file version info! Error Code: " + std::to_string(GetLastError()) + "\n");
 	}
 
 	UINT puLen2;
@@ -51,8 +49,7 @@ BOOL FileVersion::GetSCFileVersionInfo(LPCSTR filename, StringFileInfoMap& out)
 	BOOL t_result = _VerQueryValueA2(pVersionInfo, "\\VarFileInfo\\Translation", (LPVOID*)&lpTranslate, &puLen2);
 	if (!t_result)
 	{
-		printf("Failed to get the file translation! Error Code: %d\n", GetLastError());
-		return FALSE;
+		return MessageValue(FALSE, "Failed to get the file translation! Error Code: " + std::to_string(GetLastError()) + "\n");
 	}
 	printf("0x%x, 0x%x\n", lpTranslate->wLanguage, lpTranslate->wCodePage);
 
@@ -75,13 +72,12 @@ BOOL FileVersion::GetSCFileVersionInfo(LPCSTR filename, StringFileInfoMap& out)
 		BOOL result3 = _VerQueryValueA2(pVersionInfo, buffer, (LPVOID*)&lpBuffer, &puLen);
 		if (!result3)
 		{
-			printf("Failed to get the file file info! Error Code: %d\n", GetLastError());
-			return FALSE;
+			return MessageValue(FALSE, "Failed to get the StringFileInfo("+ it->first + ") + Error Code: " + std::to_string(GetLastError()) + "\n");
 		}
 		stringFileInfo[it->first] = lpBuffer;
 		printf("%s: %s\n", it->first.c_str(), it->second.c_str());
 	}
 
 	out = stringFileInfo;
-	return TRUE;
+	return MessageValue(TRUE);
 }

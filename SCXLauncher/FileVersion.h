@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string>
 #include <map>
+#include "Message.h"
 
 typedef DWORD(CALLBACK* GetFileVersionInfoSizeExA2)(DWORD, LPCSTR, LPDWORD);
 typedef DWORD(CALLBACK* GetFileVersionInfoExA2)(DWORD, LPCSTR, DWORD, DWORD, LPVOID);
@@ -14,7 +15,7 @@ typedef std::map<std::string, std::string> StringFileInfoMap;
 class FileVersion
 {	
 public:
-	BOOL GetSCFileVersionInfo(LPCSTR, StringFileInfoMap&);
+	MessageValue GetSCFileVersionInfo(LPCSTR, StringFileInfoMap&);
 
 private:
 	BOOL Initialize();
@@ -22,5 +23,4 @@ private:
 	GetFileVersionInfoExA2 _GetFileVersionInfoExA2;
 	VerQueryValueA2 _VerQueryValueA2;
 	HINSTANCE hInst = NULL;
-
 };
