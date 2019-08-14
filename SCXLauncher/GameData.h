@@ -17,7 +17,7 @@ public:
 						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE };
 
 	enum DWORDType { RES_TYPE, MY_SLEEP };
-	enum Version { VCLASSICS, V11SC };
+	enum Version { VCLASSICS, V11SC, V102_PATCH };
 	static void initialize(PEINFO info);
 	static bool PatchGame(std::string game_exe, GameData::Version version);
 	static DWORD GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type);

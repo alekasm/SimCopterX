@@ -18,12 +18,14 @@ namespace
 	{
 		{"6bc646d182ab8625a0d2394112334005", GameData::Version::VCLASSICS},
 		{"90db54003aa9ba881543c9d2cd0dbfbf", GameData::Version::V11SC},
+		{"d2f5c5eca71075696964d0f91b1163bf", GameData::Version::V102_PATCH}
 	};
 
 	std::map<GameData::Version, std::string> version_description = 
 	{
 		{GameData::Version::VCLASSICS, "Classics Version - February 1998"},
-		{GameData::Version::V11SC, "Version 1.1sc - 7 November 1996"}
+		{GameData::Version::V11SC, "Version 1.1sc - 7 November 1996"},
+		{GameData::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"}
 	};
 
 	std::string SimCopterXDirectory;
