@@ -41,6 +41,7 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameData::Versio
 	case Version::V11SC:
 		rewrite_start = function_entry + 0x32;
 		break;
+	case Version::V102_PATCH:
 	case Version::VCLASSICS:
 		rewrite_start = function_entry + 0x3F;
 		break;
@@ -66,6 +67,7 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameData::Version 
 	case Version::V11SC:
 		rewrite_start = function_entry + 0x151;
 		break;
+	case Version::V102_PATCH:
 	case Version::VCLASSICS:
 		rewrite_start = function_entry + 0x15E;
 		break;
@@ -120,6 +122,7 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameData::Version vers
 	case Version::V11SC:
 		rewrite_start = function_entry + 0xC;
 		break;
+	case Version::V102_PATCH:
 	case Version::VCLASSICS:
 		rewrite_start = function_entry + 0x19;
 		break;
@@ -154,11 +157,10 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameData::Version v
 	switch (version)
 	{
 	case Version::V11SC:
-		//detour_return = function_entry + 0x19;
 		detour_return = function_entry + 0xF2;
 		break;
+	case Version::V102_PATCH:
 	case Version::VCLASSICS:
-		//detour_return = function_entry + 0x26;
 		detour_return = function_entry + 0xFF;
 		break;
 	}
@@ -402,13 +404,16 @@ void GameData::initialize(PEINFO info)
 	version_102patch.functions[CD_CHECK] = 0x433030;
 
 	version_classics.functions[CHOPPER_UI] = 0x4124C0;  
-	version_11sc.functions[CHOPPER_UI] = 0x412440;      
+	version_11sc.functions[CHOPPER_UI] = 0x412440;  
+	version_102patch.functions[CHOPPER_UI] = 0x4124F0;
 
 	version_classics.functions[FLAP_UI] = 0x412860;    
-	version_11sc.functions[FLAP_UI] = 0x4127D0;        
+	version_11sc.functions[FLAP_UI] = 0x4127D0;   
+	version_102patch.functions[FLAP_UI] = 0x412890;
 
 	version_classics.functions[CHOPPER_CLIP] = 0x413170; 
 	version_11sc.functions[CHOPPER_CLIP] = 0x413090;    
+	version_102patch.functions[CHOPPER_CLIP] = 0x4131A0;
 
 	version_classics.functions[RES_LOOKUP] = 0x4641C0;
 	version_11sc.functions[RES_LOOKUP] = 0x4610A0;
@@ -416,7 +421,8 @@ void GameData::initialize(PEINFO info)
 
 	version_classics.functions[SCREEN_CLIP] = 0x430E40; 
 	version_11sc.functions[SCREEN_CLIP] = 0x42E130; 
-
+	version_102patch.functions[SCREEN_CLIP] = 0x42E630;
+	
 	version_classics.functions[DDRAW_PALETTE] = 0x41CD40;
 	version_11sc.functions[DDRAW_PALETTE] = 0x41C9E0;
 	version_102patch.functions[DDRAW_PALETTE] = 0x41CD60;

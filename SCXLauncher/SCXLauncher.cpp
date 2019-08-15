@@ -15,8 +15,8 @@ namespace
 
 	LPCSTR AimbotOptions[4] = { "[4:3] 640x480 (Original)", "[4:3] 1024x768", "[16:9] 1280x720", "[16:10] 1280x800" };
 
-	HWND PatchButton; //aimbot key
-	HWND StartButton; //triggerbot key
+	HWND PatchButton; 
+	HWND StartButton; 
 	HWND HelpButton;
 	HWND UpdateButton;
 
