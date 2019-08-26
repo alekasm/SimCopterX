@@ -22,7 +22,6 @@ namespace
 
 	HWND settingsHwnd;	
 
-	//Checkboxes
 	HWND verifyCheckbox;
 
 	HWND fsRadioButton;
@@ -34,8 +33,6 @@ namespace
 	bool fullscreenValue = true;
 
 	HWND SensitivityBar;
-
-
 	HWND resolutionTextbox;
 	HWND AimbotErrorText;
 

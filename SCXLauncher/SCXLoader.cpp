@@ -130,10 +130,11 @@ bool CreatePatchFile()
 
 bool SCXLoader::InitializeGameData(std::string game_location)
 {
-	if (!Patcher::CreateDetourSection(game_location.c_str(), &peinfo))	
+	if (!Patcher::CreateDetourSection(game_location.c_str(), &peinfo))
 		return false;
-	
+
 	GameData::initialize(peinfo);
+	return true;
 }
 
 bool SCXLoader::CreatePatchedGame(std::string game_location)
@@ -263,7 +264,7 @@ void SetGameDirectories(std::string full_exe_location)
 	std::vector<std::string> path = split_string('/', format_location);
 	SimCopterGameLocation = format_location;
 	SimCopterGameRootDirectory = "";
-	for(int i = 0; i < path.size() - 2; i++) //root dir is 2 up from full exe location
+	for(size_t i = 0; i < path.size() - 2; i++) //root dir is 2 up from full exe location
 	{
 		SimCopterGameRootDirectory += path.at(i) + "/";
 	}
@@ -317,7 +318,7 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 		ShowMessage("SimCopterX", "Failed to start the game.\n Make sure the game isn't running or opened in another application");
 		return false;
 	}
-
+	
 	if (!fullscreen && !GetFileCompatability(SimCopterGameLocation))
 	{
 		const char *message =
@@ -529,9 +530,9 @@ std::string CreateMD5Hash(std::string filename_string)
 	{
 		for (DWORD i = 0; i < cbHash; i++)
 		{
-			char buffer[2];
-			sprintf(buffer, "%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
-			md5_hash.append(std::string(buffer));
+			char buffer[3]; //buffer needs terminating null
+			sprintf_s(buffer, 3, "%c%c", rgbDigits[rgbHash[i] >> 4], rgbDigits[rgbHash[i] & 0xf]);
+			md5_hash.append(buffer);
 		}
 		CryptDestroyHash(hHash);
 		CryptReleaseContext(hProv, 0);
