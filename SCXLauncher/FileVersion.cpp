@@ -10,13 +10,23 @@ BOOL FileVersion::Initialize()
 	//VerQueryValueA
 	if ((hInst = LoadLibrary("Version.dll")) == NULL)
 	{
-		//ShowMessage("SimCopterX Error - Version", "Could not load Version.dll (System 32)! \n");
 		return FALSE;
 	}
 
-	_GetFileVersionInfoSizeExA2 = (GetFileVersionInfoSizeExA2)GetProcAddress(hInst, "GetFileVersionInfoSizeExA");
-	_GetFileVersionInfoExA2 = (GetFileVersionInfoExA2)GetProcAddress(hInst, "GetFileVersionInfoExA");
-	_VerQueryValueA2 = (VerQueryValueA2)GetProcAddress(hInst, "VerQueryValueA");
+	FARPROC _GetFileVersionInfoSizeExA2Address = GetProcAddress(hInst, "GetFileVersionInfoSizeExA");
+	FARPROC _GetFileVersionInfoExA2Address = GetProcAddress(hInst, "GetFileVersionInfoExA");
+	FARPROC _VerQueryValueA2Address = GetProcAddress(hInst, "VerQueryValueA");
+
+	if (_GetFileVersionInfoSizeExA2Address == NULL ||
+		_GetFileVersionInfoExA2Address  == NULL ||
+		_VerQueryValueA2Address == NULL)
+	{
+		return FALSE;
+	}
+
+	_GetFileVersionInfoSizeExA2 = (GetFileVersionInfoSizeExA2)_GetFileVersionInfoSizeExA2Address;
+	_GetFileVersionInfoExA2 = (GetFileVersionInfoExA2)_GetFileVersionInfoExA2Address;
+	_VerQueryValueA2 = (VerQueryValueA2)_VerQueryValueA2Address;
 
 	return TRUE;
 }
@@ -24,7 +34,7 @@ BOOL FileVersion::Initialize()
 MessageValue FileVersion::GetSCFileVersionInfo(LPCSTR filename, StringFileInfoMap& out)
 {
 	if (!Initialize())
-		return MessageValue(FALSE, "Could not load Version.dll (System 32)!\n");
+		return MessageValue(FALSE, "Could not load Version.dll (System32)!\n");
 
 	DWORD flags = FILE_VER_GET_NEUTRAL | FILE_VER_GET_LOCALISED;
 	DWORD size = _GetFileVersionInfoSizeExA2(flags, filename, NULL);

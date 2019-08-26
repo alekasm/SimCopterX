@@ -12,7 +12,7 @@ namespace
 {
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
-	const int SCX_VERSION = 5;
+	const int SCX_VERSION = 6;
 
 	std::map<std::string, GameData::Version> version_hashes = 
 	{
