@@ -155,7 +155,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 	
 	if (invalid_path)
 	{
-		ShowMessage("SimCopterX Error", "The game you selected in not in a valid SimCopter install path. Please use 'SimCopter/SIMCOPTER/SimCopter.exe'");
+		ShowMessage("SimCopterX Error", "The game you selected in not in a valid SimCopter install path. Please use '*/SIMCOPTER/SimCopter.exe'");
 		return false;
 	}
 

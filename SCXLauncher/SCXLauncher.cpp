@@ -13,7 +13,8 @@ void initialize(HINSTANCE hInstance);
 namespace
 {
 
-	LPCSTR AimbotOptions[4] = { "[4:3] 640x480 (Original)", "[4:3] 1024x768", "[16:9] 1280x720", "[16:10] 1280x800" };
+	LPCSTR ResolutionOptions[4] = { "[4:3] 640x480 (Original)", "[4:3] 1024x768", "[16:9] 1280x720", "[16:10] 1280x800" };
+	unsigned int SpeedValues[7] = { 1, 4, 8, 16, 24, 32, 64 };
 
 	HWND PatchButton; 
 	HWND StartButton; 
@@ -139,10 +140,6 @@ void initialize(HINSTANCE hInstance)
 		TRACKBAR_CLASS, "TEST", WS_VISIBLE | WS_CHILD | TBS_HORZ | TBS_AUTOTICKS,
 		220, 95, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
-	/*resolutionTextbox = CreateWindow("EDIT", "Resolution",
-		WS_CHILD | WS_VISIBLE | ES_LEFT | ES_READONLY | ES_MULTILINE,
-		75, 125, 90, 20, settingsHwnd, NULL, NULL, NULL);*/
-
 	speedTextbox = CreateWindow("EDIT", "Game Speed: 16ms",
 		WS_CHILD | WS_VISIBLE | ES_LEFT | ES_READONLY | ES_MULTILINE,
 		230, 125, 150, 20, settingsHwnd, NULL, NULL, NULL);
@@ -190,8 +187,8 @@ void initialize(HINSTANCE hInstance)
 	UpdateWindow(SensitivityBar);
 
 
-	for (int i = 0; i < sizeof(AimbotOptions) / sizeof(LPCSTR); i++)
-		SendMessage(resolutionCombobox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)AimbotOptions[i]);
+	for (int i = 0; i < sizeof(ResolutionOptions) / sizeof(LPCSTR); i++)
+		SendMessage(resolutionCombobox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)ResolutionOptions[i]);
 
 	SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
 
@@ -243,31 +240,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	case WM_HSCROLL:
 		if (true)
 		{
-			int x = SendMessage((HWND)lParam, (UINT)TBM_GETPOS, (WPARAM)0, (LPARAM)0);
-			switch (x)
-			{
-			case 1:
-				speedMS = 1;
-				break;
-			case 2:
-				speedMS = 4;
-				break;
-			case 3:
-				speedMS = 8;
-				break;
-			case 4:
-				speedMS = 16;
-				break;
-			case 5:
-				speedMS = 24;
-				break;
-			case 6:
-				speedMS = 32;
-				break;
-			case 7:
-				speedMS = 64;
-				break;
-			}
+			int sliderValue = SendMessage((HWND)lParam, (UINT)TBM_GETPOS, (WPARAM)0, (LPARAM)0);
+			speedMS = 16;
+
+			if (sliderValue && sliderValue <= (sizeof(SpeedValues) / 4))			
+				speedMS = SpeedValues[sliderValue - 1];		
+
 			std::string speedText("Game Speed: ");
 			speedText.append(std::to_string(speedMS)).append("ms");
 			SetWindowText(speedTextbox, speedText.c_str());
@@ -283,9 +261,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 				int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
 				char ListItem[256];
 				SendMessage((HWND)lParam, (UINT)CB_GETLBTEXT, (WPARAM)ItemIndex, (LPARAM)ListItem);
-				for (int i = 0; i < sizeof(AimbotOptions) / sizeof(LPCSTR); i++)
+				for (int i = 0; i < sizeof(ResolutionOptions) / sizeof(LPCSTR); i++)
 				{
-					if (_stricmp(std::string(ListItem).c_str(), AimbotOptions[i]) == 0)
+					if (_stricmp(std::string(ListItem).c_str(), ResolutionOptions[i]) == 0)
 					{
 						resolutionValue = i;
 						break;
