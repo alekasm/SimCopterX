@@ -34,13 +34,11 @@ namespace
 
 	HWND SensitivityBar;
 	HWND resolutionTextbox;
-	HWND AimbotErrorText;
 
 	WNDCLASSEX SettingsClass;
 
 	bool verifyInstallationValue = false;
 
-	bool AimbotUseKeyboard = false;
 	bool CanEnd = false;
 	bool end_process = false;
 
@@ -104,8 +102,8 @@ void initialize(HINSTANCE hInstance)
 	SettingsClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	SettingsClass.hbrBackground = CreateSolidBrush(COLORREF(0xf0f0f0));
 	SettingsClass.cbSize = sizeof(WNDCLASSEX);
-	SettingsClass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(108));
-	SettingsClass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(108));
+	SettingsClass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+	SettingsClass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
 	SettingsClass.hInstance = hInstance;
 	SettingsClass.lpfnWndProc = WndProc;
 	SettingsClass.lpszClassName = "SASETTINGS";
@@ -121,36 +119,36 @@ void initialize(HINSTANCE hInstance)
 
 	verifyCheckbox = CreateWindow(
 		"Button", "Verify Install", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTOCHECKBOX,
-		225, 60, 100, 25, settingsHwnd, NULL,
+		225, 65, 100, 25, settingsHwnd, NULL,
 		NULL, NULL);
 	Button_SetCheck(verifyCheckbox, BST_CHECKED);
 
 	PatchButton = CreateWindow(
 		"Button", "Patch Game", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
-		10, 60, 150, 25, settingsHwnd, NULL,
+		10, 65, 150, 25, settingsHwnd, NULL,
 		NULL, NULL);
 
 	resolutionCombobox = CreateWindow(
 		"COMBOBOX", "", WS_VISIBLE | WS_CHILDWINDOW | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_BORDER,
-		10, 95, 200, 100, settingsHwnd, NULL, NULL, NULL);
+		10, 132, 195, 100, settingsHwnd, NULL, NULL, NULL);
 
 	SensitivityBar = CreateWindow(
 		TRACKBAR_CLASS, "TEST", WS_VISIBLE | WS_CHILD | TBS_HORZ | TBS_AUTOTICKS,
-		220, 95, 150, 20, settingsHwnd, NULL, NULL, NULL);
+		220, 144, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
-	speedTextbox = CreateWindow("EDIT", "Game Speed: 16ms",
+	speedTextbox = CreateWindow("EDIT", "Game Sleep: 16ms",
 		WS_CHILD | WS_VISIBLE | ES_LEFT | ES_READONLY | ES_MULTILINE,
-		230, 125, 150, 20, settingsHwnd, NULL, NULL, NULL);
+		230, 174, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
 	fsRadioButton = CreateWindow(
 			"Button", "Fullscreen", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
-			10, 150, 100, 25, settingsHwnd, NULL,
+			10, 170, 100, 25, settingsHwnd, NULL,
 			NULL, NULL);
 	Button_SetCheck(fsRadioButton, BST_CHECKED);
 
 	wsRadioButton = CreateWindow(
 		"Button", "Windowed", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
-		10, 175, 150, 25, settingsHwnd, NULL,
+		115, 170, 100, 25, settingsHwnd, NULL,
 		NULL, NULL);
 
 	StartButton = CreateWindow(
@@ -236,7 +234,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 			if (sliderValue && sliderValue <= (sizeof(SpeedValues) / 4))			
 				speedMS = SpeedValues[sliderValue - 1];		
 
-			std::string speedText("Game Speed: ");
+			std::string speedText("Game Sleep: ");
 			speedText.append(std::to_string(speedMS)).append("ms");
 			SetWindowText(speedTextbox, speedText.c_str());
 			UpdateWindow(speedTextbox);

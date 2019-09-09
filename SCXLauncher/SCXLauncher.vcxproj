@@ -163,8 +163,8 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Desktop\icon_small.ico" />
-    <Image Include="..\..\..\..\Desktop\logo2.bmp" />
+    <Image Include="icon.ico" />
+    <Image Include="logo.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
