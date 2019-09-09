@@ -19,14 +19,16 @@ namespace
 	{
 		{"6bc646d182ab8625a0d2394112334005", GameData::Version::VCLASSICS},
 		{"90db54003aa9ba881543c9d2cd0dbfbf", GameData::Version::V11SC},
-		{"d2f5c5eca71075696964d0f91b1163bf", GameData::Version::V102_PATCH}
+		{"d2f5c5eca71075696964d0f91b1163bf", GameData::Version::V102_PATCH},
+		{"b296b26e922bc43705b49f7414d7218f", GameData::Version::V11SC_FR}
 	};
 
 	std::map<GameData::Version, std::string> version_description = 
 	{
 		{GameData::Version::VCLASSICS, "Classics Version - February 1998"},
 		{GameData::Version::V11SC, "Version 1.1sc - 7 November 1996"},
-		{GameData::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"}
+		{GameData::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
+		{GameData::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
 	};
 
 	std::string SimCopterXDirectory;
@@ -559,6 +561,7 @@ MessageValue VerifyInstallation(GameData::Version version)
 	std::map<GameData::Version, std::vector<std::string>> dll_map = 
 	{
 		{GameData::Version::V11SC,		{"smackw32.dll"}},
+		{GameData::Version::V11SC_FR,	{"smackw32.dll"}},
 		{GameData::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
 		{GameData::Version::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
 	};

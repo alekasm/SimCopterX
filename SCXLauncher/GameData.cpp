@@ -39,6 +39,7 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameData::Versio
 	switch (version)
 	{
 	case Version::V11SC:
+	case Version::V11SC_FR:
 		rewrite_start = function_entry + 0x32;
 		break;
 	case Version::V102_PATCH:
@@ -65,6 +66,7 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameData::Version 
 	switch (version)
 	{
 	case Version::V11SC:
+	case Version::V11SC_FR:
 		rewrite_start = function_entry + 0x151;
 		break;
 	case Version::V102_PATCH:
@@ -120,6 +122,7 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameData::Version vers
 	switch (version)
 	{
 	case Version::V11SC:
+	case Version::V11SC_FR:
 		rewrite_start = function_entry + 0xC;
 		break;
 	case Version::V102_PATCH:
@@ -157,6 +160,7 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameData::Version v
 	switch (version)
 	{
 	case Version::V11SC:
+	case Version::V11SC_FR:
 		detour_return = function_entry + 0xF2;
 		break;
 	case Version::V102_PATCH:
@@ -389,49 +393,61 @@ void GameData::initialize(PEINFO info)
 	Game version_classics; //February 1998
 	Game version_11sc; //7 November 1996
 	Game version_102patch; // 26 February 1997
+	Game version_11scfr; //7 November 1996 (FR)
 
 	version_classics.global_dwords[RES_TYPE] = 0x5017D0;
 	version_11sc.global_dwords[RES_TYPE] = 0x4F9798;
+	version_11scfr.global_dwords[RES_TYPE] = 0x4F9778;
 	version_102patch.global_dwords[RES_TYPE] = 0x4FE7A0;
 
 	version_classics.functions[GLOBAL_INIT] = 0x45DDB0; 
 	version_11sc.functions[GLOBAL_INIT] = 0x45ADE0;  
+	version_11scfr.functions[GLOBAL_INIT] = 0x459B30;
 	version_102patch.functions[GLOBAL_INIT] = 0x45B540;
 
 	version_classics.functions[MAIN_LOOP] = 0x4308B0;   
 	version_11sc.functions[MAIN_LOOP] = 0x42DBB0;   
+	version_11scfr.functions[MAIN_LOOP] = 0x42C900;
 	version_102patch.functions[MAIN_LOOP] = 0x42E0A0;
 
 	version_classics.functions[DS_SLEEP] = 0x62B624;
 	version_11sc.functions[DS_SLEEP] = 0x61D594;
+	version_11scfr.functions[DS_SLEEP] = 0x61D594;
 	version_102patch.functions[DS_SLEEP] = 0x62560C;
 
 	version_classics.functions[CD_CHECK] = 0x435840;   
-	version_11sc.functions[CD_CHECK] = 0x432B20;	  
+	version_11sc.functions[CD_CHECK] = 0x432B20;	
+	version_11scfr.functions[CD_CHECK] = 0x431870;
 	version_102patch.functions[CD_CHECK] = 0x433030;
 
 	version_classics.functions[CHOPPER_UI] = 0x4124C0;  
 	version_11sc.functions[CHOPPER_UI] = 0x412440;  
+	version_11scfr.functions[CHOPPER_UI] = 0x411190;
 	version_102patch.functions[CHOPPER_UI] = 0x4124F0;
 
 	version_classics.functions[FLAP_UI] = 0x412860;    
 	version_11sc.functions[FLAP_UI] = 0x4127D0;   
+	version_11scfr.functions[FLAP_UI] = 0x411520;
 	version_102patch.functions[FLAP_UI] = 0x412890;
 
 	version_classics.functions[CHOPPER_CLIP] = 0x413170; 
 	version_11sc.functions[CHOPPER_CLIP] = 0x413090;    
+	version_11scfr.functions[CHOPPER_CLIP] = 0x411DE0;
 	version_102patch.functions[CHOPPER_CLIP] = 0x4131A0;
 
 	version_classics.functions[RES_LOOKUP] = 0x4641C0;
 	version_11sc.functions[RES_LOOKUP] = 0x4610A0;
+	version_11scfr.functions[RES_LOOKUP] = 0x45FDF0;
 	version_102patch.functions[RES_LOOKUP] = 0x461930;
 
 	version_classics.functions[SCREEN_CLIP] = 0x430E40; 
 	version_11sc.functions[SCREEN_CLIP] = 0x42E130; 
+	version_11scfr.functions[SCREEN_CLIP] = 0x42CE80;
 	version_102patch.functions[SCREEN_CLIP] = 0x42E630;
 	
 	version_classics.functions[DDRAW_PALETTE] = 0x41CD40;
 	version_11sc.functions[DDRAW_PALETTE] = 0x41C9E0;
+	version_11scfr.functions[DDRAW_PALETTE] = 0x41B730;
 	version_102patch.functions[DDRAW_PALETTE] = 0x41CD60;
 
 
@@ -449,10 +465,12 @@ void GameData::initialize(PEINFO info)
 	//---------- Below here contains completely new functions/variables
 	version_classics.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 	version_11sc.global_dwords[MY_SLEEP] = master->base_location + 0x4;
+	version_11scfr.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 	version_102patch.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 
 	games[VCLASSICS] = version_classics;
 	games[V11SC] = version_11sc;
+	games[V11SC_FR] = version_11scfr;
 	games[V102_PATCH] = version_102patch;
 
 
