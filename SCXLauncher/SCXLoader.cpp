@@ -1,18 +1,19 @@
 #include "SCXLoader.h"
 
 std::string LastErrorString();
-std::string GetResponseCode(LPCSTR);
 std::string CreateMD5Hash(std::string);
 std::vector<std::string> split_string(char delim, std::string split_string);
 MessageValue VerifyOriginalGame(std::string source);
-void SetGameDirectories(std::string full_exe_location);
+std::string FormatDirectoryLocation(std::string full_exe_location);
+MessageValue VerifyInstallationDirectory(std::string game_location);
+MessageValue VerifyInstallation(GameData::Version version);
 
 
 namespace
 {
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
-	const int SCX_VERSION = 6;
+	const int SCX_VERSION = 7;
 
 	std::map<std::string, GameData::Version> version_hashes = 
 	{
@@ -30,7 +31,8 @@ namespace
 
 	std::string SimCopterXDirectory;
 	std::string SimCopterGameLocation = "";
-	std::string SimCopterGameRootDirectory = "";
+	std::string SimCopterGameInstallDirectory = "";
+	bool ValidInstallation = false;
 
 	const std::string version_url("http://simcopter.net/versions.dat");
 	std::string patched_hash;
@@ -39,6 +41,11 @@ namespace
 	PEINFO peinfo;
 	GameData::Version game_version;
 	FileVersion fileVersion;
+}
+
+bool SCXLoader::GetValidInstallation()
+{
+	return ValidInstallation;
 }
 
 bool SCXLoader::GetFileCompatability(std::string game_location)
@@ -121,7 +128,9 @@ bool CreatePatchFile()
 	std::ofstream patch_stream(SCXDirectory(patch_file));
 	if (patch_stream.is_open())
 	{
-		patch_stream << hash_reference << "," << patched_scxversion << "," << SimCopterGameLocation << "," << static_cast<int>(game_version);
+		patch_stream << hash_reference << "," << patched_scxversion << ",";
+		patch_stream << SimCopterGameLocation << "," << static_cast<int>(game_version) << ",";
+		patch_stream << static_cast<int>(ValidInstallation);
 		patch_stream.close();
 		return true;
 	}
@@ -137,27 +146,12 @@ bool SCXLoader::InitializeGameData(std::string game_location)
 	return true;
 }
 
-bool SCXLoader::CreatePatchedGame(std::string game_location)
+bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_installation)
 {
 	OutputDebugString(std::string("Attempting to patch game at " + game_location + "\n").c_str());
 
 	if (game_location.empty()) //Means nothing was selected
 		return false;
-
-	std::string format_location(game_location);
-	std::replace(format_location.begin(), format_location.end(), '\\', '/');
-	std::transform(format_location.begin(), format_location.end(), format_location.begin(), ::tolower);
-	std::vector<std::string> vec_path = split_string('/', format_location);
-
-	bool invalid_path = vec_path.size() < 3 ||
-		vec_path.at(vec_path.size() - 1).compare("simcopter.exe") != 0 ||
-		vec_path.at(vec_path.size() - 2).compare("simcopter") != 0;
-	
-	if (invalid_path)
-	{
-		ShowMessage("SimCopterX Error", "The game you selected in not in a valid SimCopter install path. Please use '*/SIMCOPTER/SimCopter.exe'");
-		return false;
-	}
 
 	/*
 	If the game we selected is not an original, check to see if our directory has an original.
@@ -166,8 +160,18 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 	bool using_backup_copy = false;
 	MessageValue verifyCurrentValue;
 
-	if (!(verifyCurrentValue = VerifyOriginalGame(game_location)).Value)
+	std::string GameLocation = FormatDirectoryLocation(game_location);
+
+	if (!(verifyCurrentValue = VerifyOriginalGame(GameLocation)).Value)
 	{
+		if (!verify_installation)
+		{
+			std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. Not ";
+			message_body += "attempting to use a backup copy since 'Verify Install' was not selected.\n";
+			ShowMessage("SimCopterX Error", message_body);
+			return false;
+		}
+
 		if (!VerifyOriginalGame(SCXDirectory("SimCopter.exe")).Value)
 		{
 			std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. SimCopterX ";
@@ -176,18 +180,44 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 			message_body += verifyCurrentValue.Message;
 			ShowMessage("SimCopterX Error", message_body);
 			return false;
-		}	
+		}
+		
 		using_backup_copy = true;
 	}
 	else
 	{
-		BOOL copy_result = CopyFileA(game_location.c_str(), SCXDirectory(game_file).c_str(), FALSE);
+		BOOL copy_result = CopyFileA(GameLocation.c_str(), SCXDirectory(game_file).c_str(), FALSE);
 		if (!copy_result)
 		{
 			ShowMessage(LastErrorString(), "Failed to copy the original game from the source location to the SimCopterX directory.");
 			return false;
 		}
 	}	
+
+	if (verify_installation)
+	{
+		MessageValue msg_verify;
+		if (!(msg_verify = VerifyInstallationDirectory(GameLocation)).Value)
+		{
+			ShowMessage("SimCopterX Installation", msg_verify.Message);
+			return false;
+		}
+
+		SimCopterGameLocation = SimCopterGameInstallDirectory + "SimCopter/SimCopter.exe";
+
+		MessageValue msg_install;
+		if (!(msg_install = VerifyInstallation(game_version)).Value)
+		{
+			ShowMessage("SimCopterX Installation", msg_install.Message);
+			return false;
+		}
+
+		ValidInstallation = true;
+	}
+	else
+	{
+		SimCopterGameLocation = GameLocation;
+	}
 
 	BOOL copy_result2 = CopyFileA(SCXDirectory("SimCopter.exe").c_str(), SCXDirectory("SimCopterX.exe").c_str(), FALSE);
 	if (!copy_result2)
@@ -208,7 +238,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 		return false;
 	}
 
-	BOOL copy_result3 = CopyFileA(SCXDirectory("SimCopterX.exe").c_str(), game_location.c_str(), FALSE);
+	BOOL copy_result3 = CopyFileA(SCXDirectory("SimCopterX.exe").c_str(), SimCopterGameLocation.c_str(), FALSE);
 	if (!copy_result3)
 	{
 		ShowMessage(LastErrorString(), "Failed to copy the intermediary SimCopterX patch game file to the source directory");
@@ -216,7 +246,6 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 	}
 
 	patched_scxversion = SCX_VERSION;
-	SetGameDirectories(game_location);
 
 	BOOL delete_result = DeleteFileA(SCXDirectory("SimCopterX.exe").c_str());
 	if (!delete_result)
@@ -224,8 +253,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 		OutputDebugString(std::string("Failed to delete intermediary SimCopterX game file. Still successful... Error: (" + std::to_string(GetLastError()) + ")").c_str());
 	}
 
-	bool create_pfile = CreatePatchFile();
-	if (!create_pfile)
+	if (verify_installation && !CreatePatchFile())
 	{
 		ShowMessage("SimCopterX Error", "Failed to create the patch file which stores information about your specific patch.");
 		return false;
@@ -238,7 +266,11 @@ bool SCXLoader::CreatePatchedGame(std::string game_location)
 		message += "Detected Version: " + version_description[game_version] + "\n";
 
 	message += "Patch location : \n" + game_location + "\n\n";
-	message += "If you modify or move this file, you will need to re-patch again.\n";
+	if (verify_installation)
+		message += "If you modify or move this file, you will need to re-patch again.\n";
+	else	
+		message += "You patched this game without 'Verify Install', so you can't launch using SCXLauncher\n";
+	
 
 	ShowMessage("SimCopterX Patch Successful!", message);
 	return true;
@@ -250,6 +282,7 @@ void ClearPatchFile(std::string reason)
 	SimCopterGameLocation = "";
 	patched_hash = -1;
 	patched_scxversion = -1;
+	ValidInstallation = false;
 	BOOL delete_result = DeleteFileA(SCXDirectory(patch_file).c_str());
 	if (!delete_result)
 	{
@@ -257,18 +290,37 @@ void ClearPatchFile(std::string reason)
 	}
 }
 
-void SetGameDirectories(std::string full_exe_location)
+MessageValue VerifyInstallationDirectory(std::string game_location)
+{
+	//This is used for installing the game (if verify install is enabled)
+	std::vector<std::string> path = split_string('/', game_location);
+	SimCopterGameInstallDirectory = "";
+
+	for (size_t i = path.size() - 2; i > 0; i--) //i - 1 = game exe
+	{
+		std::string path_check = "";
+		for (size_t j = 0; j < i + 1; j++)
+		{
+			path_check += path.at(j) + "/";
+		}
+		//The top-level directory should have autorun.inf
+		std::string auto_run = path_check + "autorun.inf";
+		OutputDebugString(std::string("Checking: " + auto_run + "\n").c_str());
+		if (PathFileExistsA(auto_run.c_str()))
+		{
+			SimCopterGameInstallDirectory = path_check;
+			OutputDebugString(std::string("Install: " + SimCopterGameInstallDirectory).append("\n").c_str());
+			return MessageValue(TRUE);
+		}
+	}
+	return MessageValue(FALSE, "The game does not appear to be on a valid extracted CD, missing autorun.inf");
+}
+
+std::string FormatDirectoryLocation(std::string full_exe_location)
 {
 	std::string format_location(full_exe_location);
 	std::replace(format_location.begin(), format_location.end(), '\\', '/');
-	std::vector<std::string> path = split_string('/', format_location);
-	SimCopterGameLocation = format_location;
-	SimCopterGameRootDirectory = "";
-	for(size_t i = 0; i < path.size() - 2; i++) //root dir is 2 up from full exe location
-	{
-		SimCopterGameRootDirectory += path.at(i) + "/";
-	}
-	OutputDebugString(std::string(SimCopterGameRootDirectory).append("\n").c_str());
+	return format_location;
 }
 
 bool VerifyPatchedGame()
@@ -308,6 +360,12 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 		return false;
 	}
 
+	if (!ValidInstallation) //This shouldn't happen because the button should not be enabled
+	{
+		ShowMessage("SimStreetsX Error", "You need to patch the game using 'Verify Install'");
+		return false;
+	}
+
 	if (!VerifyPatchedGame())
 	{
 		return false;
@@ -330,31 +388,12 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 			"5. Click apply, then try again";
 		ShowMessage("SimCopterX", std::string(message));
 		return false;
-	}
-	
+	}	
 
-	//Just to keep things explicit, might make this dynamic in the future
-	int dword_5017D0 = resolution_mode;
-	int dword_5017A8 = sleep_time;
-
-	FILE* efile;
-	int result = fopen_s(&efile, SimCopterGameLocation.c_str(), "r+");
-	if (efile == nullptr)
-	{
-		ShowMessage(std::string("SimCopterX Error (" + std::to_string(result) + ")"), std::string("Failed to load exe file for patching: " + SimCopterGameLocation + "\n"));
-		return false;
-	}
-	
-	DWORD res_offset = GameData::GetDWORDOffset(game_version, GameData::DWORDType::RES_TYPE);
-	DWORD sleep_offset = GameData::GetDWORDOffset(game_version, GameData::DWORDType::MY_SLEEP);
-
-	fseek(efile, res_offset, SEEK_SET);
-	fprintf(efile, "%c", dword_5017D0);
-
-	fseek(efile, sleep_offset, SEEK_SET);
-	fprintf(efile, "%c", dword_5017A8);
-
-	fclose(efile);
+	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameData::DWORDType::MY_SLEEP);
+	DWORD res_address = GameData::GetDWORDAddress(game_version, GameData::DWORDType::RES_TYPE);
+	Patcher::Patch(DataValue(sleep_address, BYTE(sleep_time)), SimCopterGameLocation);
+	Patcher::Patch(DataValue(res_address, BYTE(resolution_mode)), SimCopterGameLocation);
 
 	//Can only get the hash at this point as a reference, can't use it to check for complete validty
 	//because changing sleep time and resolution mode dwords will change the hash
@@ -371,47 +410,6 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 	}
 	return true;
 }
-
-void SCXLoader::CheckForUpdates()
-{
-	int server_version = -1;
-	std::string response = GetResponseCode(version_url.c_str());
-	if (response.empty())
-	{
-		OutputDebugString("Failed to check for the latest server versions \n");
-		server_version = -1;
-	}
-	else
-	{
-		server_version = std::atoi(response.c_str());
-	}
-	OutputDebugString(std::string("Latest Version: " + std::to_string(server_version) + " and our version is: " + std::to_string(SCX_VERSION) + "\n").c_str());
-
-	std::string this_version = "Your Version: " + std::to_string(SCX_VERSION) + "\n";
-	if (server_version > 0)
-	{
-		std::string latest_version = "Latest Version: " + std::to_string(server_version) + "\n";
-		if (server_version > SCX_VERSION)
-		{
-			std::string message = "A new version of SimCopterX exists!\nPlease download from www.simcopter.net\n\n";
-			message += this_version + latest_version;
-			ShowMessage("SimCopterX Update", message);
-		}
-		else
-		{
-			std::string message = "You currently have the latest version of the SimCopterX.\n\n";
-			message += this_version;
-			ShowMessage("SimCopterX Update", message);
-		}
-	}
-	else
-	{
-		std::string message = "Unable to connect to www.simcopter.net.\n\n";
-		message += this_version;
-		ShowMessage("SimCopterX Update", message);
-	}
-}
-
 
 bool SCXLoader::LoadFiles()
 {
@@ -445,12 +443,13 @@ bool SCXLoader::LoadFiles()
 			fin.getline(szBuff, 128);
 			fin.close();
 			std::vector<std::string> props = split_string(',', std::string(szBuff));
-			if (props.size() == 4)
+			if (props.size() == 5)
 			{
 				patched_hash = props.at(0);
 				patched_scxversion = std::atoi(props.at(1).c_str());
-				SetGameDirectories(props.at(2));
+				SimCopterGameLocation = props.at(2);
 				game_version = static_cast<GameData::Version>(std::atoi(props.at(3).c_str()));
+				ValidInstallation = std::atoi(props.at(4).c_str());
 				OutputDebugString(std::string("Game is patched at: " + SimCopterGameLocation + "\n").c_str());	
 				OutputDebugString(std::string("Game version enum: " + std::to_string(static_cast<int>(game_version)) + "\n").c_str());
 			}
@@ -481,21 +480,6 @@ bool SCXLoader::LoadFiles()
 	return true;
 }
 
-std::string GetResponseCode(LPCSTR url)
-{
-	std::string request_fname = SCXDirectory("scx_request");
-	char szBuff[128];
-	if (URLDownloadToFileA(NULL, url, request_fname.c_str(), 0, NULL) == S_OK)
-	{
-		std::ifstream fin(request_fname);
-		fin.getline(szBuff, 128);
-		fin.close();
-		DeleteFileA(request_fname.c_str());
-		std::string return_string(szBuff);
-		return return_string;
-	}
-	return std::string("");
-}
 
 std::string CreateMD5Hash(std::string filename_string)
 {
@@ -546,50 +530,70 @@ std::string CreateMD5Hash(std::string filename_string)
 	}
 }
 
-bool SCXLoader::VerifyInstallation()
+MessageValue VerifyInstallation(GameData::Version version)
 {
-	std::string format_location(SimCopterGameRootDirectory);
-	std::replace(format_location.begin(), format_location.end(), '\\', '/');
-	//std::vector<std::string> path = split_string('/', format_location);
 
-	std::string system_dir = format_location + "setup/System/";
-	std::string smacker_dir = format_location + "setup/smacker/";
-	std::string game_dir = format_location + "SimCopter/";
+	//Yeah all of this is inefficient but who cares, you patch once and this is
+	//clean/easy to understand
 
-	if (!PathFileExistsA(game_dir.c_str()))
-	{
-		OutputDebugString(std::string("[Verify Install] " + system_dir + "does not exist\n").c_str());
-		return true;
+	std::string SimCopterGameLocationDirectory(SimCopterGameLocation);
+	auto it = SimCopterGameLocationDirectory.find("SimCopter.exe");
+	if (it == std::string::npos)
+	{	//If this happens... YIKES
+		return MessageValue(FALSE, "Could not find 'SimCopter.exe' in directory location\n"); 
 	}
+	OutputDebugString(std::string(SimCopterGameLocationDirectory + "\n").c_str());
+	OutputDebugString(std::string(std::to_string(it) + "\n").c_str());
+	SimCopterGameLocationDirectory.erase(it, SimCopterGameLocationDirectory.size() - 1);
 
-	std::vector<std::pair<std::string, std::string>> dll_pairs =
+	OutputDebugString(std::string(SimCopterGameLocationDirectory + "\n").c_str());
+	OutputDebugString(std::string(SimCopterGameLocation + "\n").c_str());
+
+	std::map<std::string, std::string> dll_source = 
 	{
-		std::pair<std::string, std::string>(system_dir, "glide.dll"),
-		std::pair<std::string, std::string>(system_dir, "sst1init.dll"),
-		std::pair<std::string, std::string>(smacker_dir, "smackw32.dll")
+		{"smackw32.dll", "setup/smacker/"},
+		{"sst1init.dll", "setup/system/"},
+		{"glide.dll", "setup/system/"}
 	};
 
-	for (std::pair<std::string, std::string> dll : dll_pairs)
+	std::map<GameData::Version, std::vector<std::string>> dll_map = 
 	{
-		std::string dll_dir = game_dir + dll.second;
-		OutputDebugString(std::string("Checking for " + dll_dir + "\n").c_str());
-		if (PathFileExistsA(dll_dir.c_str())) //already exists, nothing to do
-			continue;
-		std::string dll_copy = dll.first + dll.second;
-		if (!PathFileExistsA(dll_copy.c_str()))
+		{GameData::Version::V11SC,		{"smackw32.dll"}},
+		{GameData::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
+		{GameData::Version::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
+	};
+
+	for (std::string dll : dll_map[version])
+	{
+		std::string destination = SimCopterGameLocationDirectory + dll;
+		if (PathFileExistsA(destination.c_str()))
 		{
-			OutputDebugString(std::string("Couldn't find the required dll at: " + dll_copy + "\n").c_str());
+			OutputDebugString(std::string(dll + " already exists \n").c_str());
 			continue;
 		}
-		BOOL copy_result = CopyFileA(dll_copy.c_str(), dll_dir.c_str(), FALSE);
+
+		std::string copy_location = SimCopterGameInstallDirectory + dll_source[dll] + dll;
+		if (!PathFileExistsA(copy_location.c_str()))
+		{
+			std::string message = "Your game version is: \n" + version_description[version];
+			message += "\n\nWe could not find the required dll: " + dll + "\nExpected location:\n";
+			message += copy_location + "\n\n";
+			message += "This usually happens if you are trying to mismatch game versions with different CDs. ";
+			message += "Try using the 'Classics CD', it should have all the dlls so you can use any game version.\n";
+			return MessageValue(FALSE, message);
+		}
+
+		BOOL copy_result = CopyFileA(copy_location .c_str(), destination.c_str(), FALSE);
 		if (!copy_result)
 		{
-			OutputDebugString("Failed to copy the file..\n");
-			continue;
+			std::string message = "Failed to copy file from: \n" + copy_location + "\n\n";
+			message += "To destination location: \n" + destination + "\n\n";
+			message += "Ensure another program isn't accessing these files.";
+			return MessageValue(FALSE, message);
 		}
-		OutputDebugString(std::string("Copied " + dll_copy + " to: " + dll_dir + "\n").c_str());
+		OutputDebugString(std::string("Copied " + copy_location + " to: " + destination + "\n").c_str());
 	}
-	return true;
+	return MessageValue(TRUE);
 }
 
 std::vector<std::string> split_string(char delim, std::string split_string)

@@ -34,7 +34,6 @@ public:
 
 	void operator<<(DWORD address)
 	{
-
 		BYTE byte[sizeof(DWORD)];
 		memcpy(byte, &address, sizeof(DWORD));
 		for (int i = 0; i < sizeof(DWORD); i++)
@@ -134,4 +133,13 @@ public:
 private:
 	std::vector<Instruction> container;
 	DWORD current_location;
+};
+
+class DataValue : public Instructions
+{
+public:
+	DataValue(DWORD address, BYTE value) : Instructions(address)
+	{
+		operator<<(value);
+	}
 };

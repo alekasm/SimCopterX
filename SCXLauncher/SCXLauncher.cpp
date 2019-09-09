@@ -19,7 +19,6 @@ namespace
 	HWND PatchButton; 
 	HWND StartButton; 
 	HWND HelpButton;
-	HWND UpdateButton;
 
 	HWND settingsHwnd;	
 
@@ -85,7 +84,6 @@ void SetErrorCode(int id)
 	DestroyWindow(verifyCheckbox);
 	DestroyWindow(PatchButton);
 	DestroyWindow(StartButton);
-	DestroyWindow(UpdateButton);
 	DestroyWindow(resolutionCombobox);
 	DestroyWindow(SensitivityBar);
 	DestroyWindow(HelpButton);
@@ -155,11 +153,6 @@ void initialize(HINSTANCE hInstance)
 		10, 175, 150, 25, settingsHwnd, NULL,
 		NULL, NULL);
 
-	UpdateButton = CreateWindow(
-		"Button", "Check for updates", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
-		200, 175, 150, 25, settingsHwnd, NULL,
-		NULL, NULL);	
-
 	StartButton = CreateWindow(
 		"Button", "Dispatch!", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
 		110, 225, 150, 25, settingsHwnd, NULL,
@@ -179,9 +172,7 @@ void initialize(HINSTANCE hInstance)
 	UpdateWindow(verifyCheckbox);
 
 	UpdateWindow(speedTextbox);
-	//UpdateWindow(resolutionTextbox);
 
-	UpdateWindow(UpdateButton);
 	UpdateWindow(StartButton);
 	UpdateWindow(HelpButton);
 	UpdateWindow(SensitivityBar);
@@ -226,7 +217,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 		return 0;
 	case WM_ACTIVATE:
-		UpdateWindow(UpdateButton);
 		UpdateWindow(wsRadioButton);
 		UpdateWindow(PatchButton);
 		UpdateWindow(verifyCheckbox);
@@ -303,16 +293,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 					ofn.lpstrInitialDir = NULL;
 					ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 					GetOpenFileName(&ofn);
-					bool patch_result = SCXLoader::CreatePatchedGame(ofn.lpstrFile);
-					if (patch_result)
-					{
-						bool verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
-						if (!verify_install || SCXLoader::VerifyInstallation())
-						{
-							Button_Enable(StartButton, TRUE);
-						}
-					}
-					Button_Enable(PatchButton, TRUE);				
+					bool verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
+					bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, verify_install);
+					Button_Enable(StartButton, verify_install ? SCXLoader::GetValidInstallation() : false);
+					Button_Enable(PatchButton, TRUE);
 				}
 				else if ((HWND)lParam == StartButton)
 				{			
@@ -345,12 +329,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 					}
 					::SetFocus(NULL);
 					UpdateWindow(StartButton);					
-				}
-				else if ((HWND)lParam == UpdateButton)
-				{
-					SCXLoader::CheckForUpdates();
-					::SetFocus(NULL);
-					UpdateWindow(UpdateButton);
 				}
 				else if ((HWND)lParam == HelpButton)
 				{				

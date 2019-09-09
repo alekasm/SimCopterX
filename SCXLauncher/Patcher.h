@@ -14,7 +14,10 @@ class Patcher
 {
 public:
 	static bool CreateDetourSection(const char *filepath, PEINFO *info);
-	static bool Patch(DetourMaster* master, std::string exe_fname);
+	static bool Patch(std::vector<Instructions>, std::string exe_fname);
+	static bool Patch(Instructions, std::string exe_fname);
+	static void SetDetourMaster(DetourMaster* master);
+
 private:
 	static DWORD align(DWORD size, DWORD align, DWORD addr);
 };

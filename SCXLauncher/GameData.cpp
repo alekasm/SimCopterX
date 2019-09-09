@@ -22,7 +22,7 @@ bool GameData::PatchGame(std::string game_exe, GameData::Version version)
 	CreateChopperClipFunction(master, version);
 	CreateScreenClipFunction(master, version);
 	CreateDDrawPaletteFunction(master, version);
-	return Patcher::Patch(master, game_exe);
+	return Patcher::Patch(master->instructions, game_exe);
 }
 
 DWORD GameData::GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type)
@@ -376,8 +376,15 @@ DWORD GameData::GetDWORDAddress(Version version, DWORDType dtype)
 }
 
 void GameData::initialize(PEINFO info)
-{
+{	
+	if (master)
+	{
+		delete master;
+		master = nullptr;
+	}
+
 	master = new DetourMaster(info);
+	Patcher::SetDetourMaster(master);
 
 	Game version_classics; //February 1998
 	Game version_11sc; //7 November 1996

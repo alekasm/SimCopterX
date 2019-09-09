@@ -21,9 +21,10 @@ public:
 	static void initialize(PEINFO info);
 	static bool PatchGame(std::string game_exe, GameData::Version version);
 	static DWORD GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type);
-private:
-	static DWORD GetFunctionAddress(Version, FunctionType);
 	static DWORD GetDWORDAddress(Version version, DWORDType dtype);
+
+private:
+	static DWORD GetFunctionAddress(Version, FunctionType);	
 	static void CreateSleepFunction(DetourMaster *master, GameData::Version version);
 	static void CreateResolutionFunction(DetourMaster *master, GameData::Version version);
 	static void CreateGlobalInitFunction(DetourMaster *master, GameData::Version version);
