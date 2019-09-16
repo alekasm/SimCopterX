@@ -13,20 +13,21 @@ namespace
 {
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
-	const int SCX_VERSION = 7;
 
 	std::map<std::string, GameData::Version> version_hashes = 
 	{
 		{"6bc646d182ab8625a0d2394112334005", GameData::Version::VCLASSICS},
 		{"90db54003aa9ba881543c9d2cd0dbfbf", GameData::Version::V11SC},
 		{"d2f5c5eca71075696964d0f91b1163bf", GameData::Version::V102_PATCH},
-		{"b296b26e922bc43705b49f7414d7218f", GameData::Version::V11SC_FR}
+		{"b296b26e922bc43705b49f7414d7218f", GameData::Version::V11SC_FR},
+		{"17d5eba3e604229c4b87a68f20520b56", GameData::Version::V1}
 	};
 
 	std::map<GameData::Version, std::string> version_description = 
 	{
 		{GameData::Version::VCLASSICS, "Classics Version - February 1998"},
 		{GameData::Version::V11SC, "Version 1.1sc - 7 November 1996"},
+		{GameData::Version::V1, "Version 1.0 - 7 November 1996"},
 		{GameData::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
 		{GameData::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
 	};
@@ -343,9 +344,9 @@ bool VerifyPatchedGame()
 		return false;
 	}
 
-	if (patched_scxversion != SCX_VERSION)
+	if (patched_scxversion != SCXLoader::SCX_VERSION)
 	{
-		ClearPatchFile(std::string("You currently have SimCopterX Version " + std::to_string(SCX_VERSION) + " however the game was \npreviously patched using Version " +
+		ClearPatchFile(std::string("You currently have SimCopterX Version " + std::to_string(SCXLoader::SCX_VERSION) + " however the game was \npreviously patched using Version " +
 			std::to_string(patched_scxversion) + ". Please repatch the game."));
 		return false;
 	}
@@ -560,6 +561,7 @@ MessageValue VerifyInstallation(GameData::Version version)
 
 	std::map<GameData::Version, std::vector<std::string>> dll_map = 
 	{
+		{GameData::Version::V1,			{"smackw32.dll"}},
 		{GameData::Version::V11SC,		{"smackw32.dll"}},
 		{GameData::Version::V11SC_FR,	{"smackw32.dll"}},
 		{GameData::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},

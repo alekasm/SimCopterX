@@ -26,6 +26,7 @@ public:
 	static bool CreatePatchedGame(std::string, bool);
 	static bool StartSCX(int sleep_time, int resolution_mode, bool fullscreen);	
 	static bool GetValidInstallation();
+	static const unsigned int SCX_VERSION = 7;
 private:
 	static bool InitializeGameData(std::string);
 	static bool GetFileCompatability(std::string);

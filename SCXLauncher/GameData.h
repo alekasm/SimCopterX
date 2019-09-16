@@ -14,10 +14,11 @@ public:
 	enum FunctionType { MAIN_LOOP, GLOBAL_INIT, FLAP_UI, CHOPPER_UI, 
 						CD_CHECK, CHOPPER_CLIP, RES_LOOKUP, DS_SLEEP, 
 						SCREEN_CLIP, BITDEPTH_CHECK, VERSIONS, GRAPHICS_INIT, 
-						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE };
+						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE,
+						CHEAT };
 
 	enum DWORDType { RES_TYPE, MY_SLEEP };
-	enum Version { VCLASSICS, V11SC, V102_PATCH, V11SC_FR };
+	enum Version { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, V1 };
 	static void initialize(PEINFO info);
 	static bool PatchGame(std::string game_exe, GameData::Version version);
 	static DWORD GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type);

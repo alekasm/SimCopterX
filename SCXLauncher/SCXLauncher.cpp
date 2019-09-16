@@ -9,7 +9,11 @@
 //CommCtrl includes sliders
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initialize(HINSTANCE hInstance);
+/*
 
+TODO: Add version output to 'patch only'
+
+*/
 namespace
 {
 
@@ -110,10 +114,10 @@ void initialize(HINSTANCE hInstance)
 	SettingsClass.style = CS_HREDRAW | CS_VREDRAW;
 	RegisterClassEx(&SettingsClass);
 
-
 	settingsHwnd = CreateWindowEx(
 		WS_EX_STATICEDGE,
-		SettingsClass.lpszClassName, "SimCopterX",
+		SettingsClass.lpszClassName, 
+		std::string("SimCopterX - Version " + std::to_string(SCXLoader::SCX_VERSION)).c_str(),
 		WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
 		0, 0, 400, 300, NULL, NULL, NULL, NULL);
 

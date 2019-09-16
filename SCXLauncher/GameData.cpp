@@ -394,6 +394,7 @@ void GameData::initialize(PEINFO info)
 	Game version_11sc; //7 November 1996
 	Game version_102patch; // 26 February 1997
 	Game version_11scfr; //7 November 1996 (FR)
+	Game version_1;
 
 	version_classics.global_dwords[RES_TYPE] = 0x5017D0;
 	version_11sc.global_dwords[RES_TYPE] = 0x4F9798;
@@ -409,16 +410,19 @@ void GameData::initialize(PEINFO info)
 	version_11sc.functions[MAIN_LOOP] = 0x42DBB0;   
 	version_11scfr.functions[MAIN_LOOP] = 0x42C900;
 	version_102patch.functions[MAIN_LOOP] = 0x42E0A0;
+	version_1.functions[MAIN_LOOP] = 0x42DA10;
 
 	version_classics.functions[DS_SLEEP] = 0x62B624;
 	version_11sc.functions[DS_SLEEP] = 0x61D594;
 	version_11scfr.functions[DS_SLEEP] = 0x61D594;
 	version_102patch.functions[DS_SLEEP] = 0x62560C;
+	version_1.functions[DS_SLEEP] = 0x61B588;
 
 	version_classics.functions[CD_CHECK] = 0x435840;   
 	version_11sc.functions[CD_CHECK] = 0x432B20;	
 	version_11scfr.functions[CD_CHECK] = 0x431870;
 	version_102patch.functions[CD_CHECK] = 0x433030;
+	version_1.functions[CD_CHECK] = 0x432900;
 
 	version_classics.functions[CHOPPER_UI] = 0x4124C0;  
 	version_11sc.functions[CHOPPER_UI] = 0x412440;  
@@ -459,7 +463,7 @@ void GameData::initialize(PEINFO info)
 	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
 	version_classics.functions[GFX_SOUND_INIT] = 0x45DEC0;	//+36F (45E22F), if not windowed mode - calls DirectX fullscreen
 	version_classics.functions[ADJUST_WINDOW] = 0x421400;	//Positions the window (LPRECT) in the center of your screen	
-
+	version_classics.functions[CHEAT] = 0x438370;			//This function will get rewritten, space: 0x240D (9229 bytes)
 
 
 	//---------- Below here contains completely new functions/variables
@@ -467,11 +471,11 @@ void GameData::initialize(PEINFO info)
 	version_11sc.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 	version_11scfr.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 	version_102patch.global_dwords[MY_SLEEP] = master->base_location + 0x4;
+	version_1.global_dwords[MY_SLEEP] = master->base_location + 0x4;
 
 	games[VCLASSICS] = version_classics;
 	games[V11SC] = version_11sc;
 	games[V11SC_FR] = version_11scfr;
 	games[V102_PATCH] = version_102patch;
-
-
+	games[V1] = version_1;
 }
