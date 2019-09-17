@@ -26,7 +26,7 @@ namespace
 	std::map<GameVersion::Version, std::string> version_description = 
 	{
 		{GameVersion::Version::VCLASSICS, "Classics Version - February 1998"},
-		{GameVersion::Version::V11SC, "Version 1.1sc - 7 November 1996"},
+		{GameVersion::Version::V11SC, "Version 1.1SC - 7 November 1996"},
 		{GameVersion::Version::V1, "Version 1.0 - 7 November 1996"},
 		{GameVersion::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
 		{GameVersion::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}

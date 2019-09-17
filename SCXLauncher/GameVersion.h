@@ -32,7 +32,7 @@ struct GameVersion
 
 struct VersionClassics : GameVersion
 {
-	std::map<FunctionType, DWORD> GameVersion::FunctionMap =
+	std::map<FunctionType, DWORD> FunctionMap =
 	{
 		{GLOBAL_INIT, 0x45DDB0},
 		{MAIN_LOOP, 0x4308B0},
@@ -54,7 +54,7 @@ struct VersionClassics : GameVersion
 		{CHEAT, 0x438370}				//This function will get rewritten, space: 0x240D (9229 bytes)
 	};
 
-	std::map<DataType, DWORD> GameVersion::DataMap =
+	std::map<DataType, DWORD> DataMap =
 	{
 		{RES_TYPE, 0x5017D0}
 	};
@@ -63,7 +63,7 @@ struct VersionClassics : GameVersion
 
 struct Version11SC : GameVersion
 {
-	std::map<FunctionType, DWORD> GameVersion::FunctionMap =
+	std::map<FunctionType, DWORD> FunctionMap =
 	{
 		{GLOBAL_INIT, 0x45ADE0},
 		{MAIN_LOOP, 0x42DBB0},
@@ -79,7 +79,7 @@ struct Version11SC : GameVersion
 		{VERSIONS, 0x45C0F0}
 	};
 
-	std::map<DataType, DWORD> GameVersion::DataMap =
+	std::map<DataType, DWORD> DataMap =
 	{
 		{RES_TYPE, 0x4F9798}
 	};
@@ -88,7 +88,7 @@ struct Version11SC : GameVersion
 
 struct Version11SCFR : GameVersion
 {
-	std::map<FunctionType, DWORD> GameVersion::FunctionMap =
+	std::map<FunctionType, DWORD> FunctionMap =
 	{
 		{GLOBAL_INIT, 0x459B30},
 		{MAIN_LOOP, 0x42C900},
@@ -102,7 +102,7 @@ struct Version11SCFR : GameVersion
 		{DDRAW_PALETTE, 0x41B730}
 	};
 
-	std::map<DataType, DWORD> GameVersion::DataMap =
+	std::map<DataType, DWORD> DataMap =
 	{
 		{RES_TYPE, 0x4F9778}
 	};
@@ -110,7 +110,7 @@ struct Version11SCFR : GameVersion
 
 struct Version102Patch : GameVersion
 {
-	std::map<FunctionType, DWORD> GameVersion::FunctionMap =
+	std::map<FunctionType, DWORD> FunctionMap =
 	{
 		{GLOBAL_INIT, 0x45B540},
 		{MAIN_LOOP, 0x42E0A0},
@@ -125,7 +125,7 @@ struct Version102Patch : GameVersion
 		{DDRAW_PALETTE, 0x41CD60}
 	};
 
-	std::map<DataType, DWORD> GameVersion::DataMap =
+	std::map<DataType, DWORD> DataMap =
 	{
 		{RES_TYPE, 0x4FE7A0}
 	};
@@ -133,7 +133,7 @@ struct Version102Patch : GameVersion
 
 struct VersionOriginal : GameVersion
 {
-	std::map<FunctionType, DWORD> GameVersion::FunctionMap =
+	std::map<FunctionType, DWORD> FunctionMap =
 	{
 		
 		{MAIN_LOOP, 0x42DA10},
@@ -141,7 +141,7 @@ struct VersionOriginal : GameVersion
 		{CD_CHECK, 0x432900}
 	};
 
-	std::map<DataType, DWORD> GameVersion::DataMap =
+	std::map<DataType, DWORD> DataMap =
 	{
 		
 	};

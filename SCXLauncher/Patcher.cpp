@@ -1,14 +1,5 @@
 #include "Patcher.h"
 
-/*
-bool Patcher::Patch(PEINFO info, Instructions instructions, std::string exe_fname)
-{
-	std::vector<Instructions> ins;
-	ins.push_back(instructions);
-	return Patch(info, ins, exe_fname);
-}
-*/
-
 bool Patcher::Patch(PEINFO info, std::vector<Instructions> instructions, std::string exe_fname)
 {	
 	FILE* efile;
