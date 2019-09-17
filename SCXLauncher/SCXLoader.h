@@ -12,22 +12,33 @@
 #include "GameData.h"
 #include "FileVersion.h"
 #include "Message.h"
+#include "GameVersion.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Advapi32.lib" )
+
+
+struct SCXParameters
+{
+	bool verify_install;
+	unsigned int sleep_time;
+	unsigned int resolution_mode;
+	bool fullscreen;
+};
+
 class SCXLoader
 {
 public:
 	static bool LoadFiles();	
 	static int GetPatchedSCXVersion();
 	static std::string GetSimCopterGameLocation();
-	static bool CreatePatchedGame(std::string, bool);
-	static bool StartSCX(int sleep_time, int resolution_mode, bool fullscreen);	
+	static bool CreatePatchedGame(std::string, SCXParameters);
+	static bool StartSCX(SCXParameters);	
 	static bool GetValidInstallation();
 	static const unsigned int SCX_VERSION = 7;
 private:
-	static bool InitializeGameData(std::string);
 	static bool GetFileCompatability(std::string);
 };
+

@@ -9,6 +9,8 @@
 //CommCtrl includes sliders
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initialize(HINSTANCE hInstance);
+SCXParameters GetParameters();
+
 /*
 
 TODO: Add version output to 'patch only'
@@ -48,6 +50,35 @@ namespace
 
 	int speedMS = 16;
 	HBITMAP hBitmap = NULL;
+}
+
+SCXParameters GetParameters()
+{
+	SCXParameters parameters;
+	parameters.verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
+	parameters.fullscreen = SendMessage(fsRadioButton, BM_GETCHECK, 0, 0) == BST_CHECKED;
+
+	switch (resolutionValue)
+	{
+	case 0: //640x480
+		parameters.resolution_mode = 1;
+		break;
+	case 1: //1024x768
+		parameters.resolution_mode = 3;
+		break;
+	case 2: //1280x720
+		parameters.resolution_mode = 2;
+		break;
+	case 3: //1280x800
+		parameters.resolution_mode = 0;
+		break;
+	default:
+		printf("Error: Invalid resolution combobox selection \n");
+		parameters.resolution_mode = 1;
+		break;
+	}
+	parameters.sleep_time = speedMS;
+	return parameters;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -295,37 +326,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 					ofn.lpstrInitialDir = NULL;
 					ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 					GetOpenFileName(&ofn);
-					bool verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
-					bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, verify_install);
-					Button_Enable(StartButton, verify_install ? SCXLoader::GetValidInstallation() : false);
+					//bool verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
+					SCXParameters params = GetParameters();
+					bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
+					Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);
 					Button_Enable(PatchButton, TRUE);
 				}
 				else if ((HWND)lParam == StartButton)
-				{			
-					int dword_5017D0;
-					switch (resolutionValue)
-					{
-					case 0: //640x480
-						dword_5017D0 = 1;
-						break;
-					case 1: //1024x768
-						dword_5017D0 = 3;
-						break;
-					case 2: //1280x720
-						dword_5017D0 = 2;
-						break;
-					case 3: //1280x800
-						dword_5017D0 = 0;
-						break;
-					default:	
-						printf("Error: Invalid resolution combobox selection \n");
-						return 0;
-					}
-
-					int dword_5017A8 = speedMS;
-					bool fullscreen = SendMessage(fsRadioButton, BM_GETCHECK, 0, 0) == BST_CHECKED;			
-					
-					if (SCXLoader::StartSCX(dword_5017A8, dword_5017D0, fullscreen))
+				{					
+					if (SCXLoader::StartSCX(GetParameters()))
 					{
 						end_process = true;
 					}

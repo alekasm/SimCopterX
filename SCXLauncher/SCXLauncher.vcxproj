@@ -152,6 +152,7 @@
     <ClInclude Include="DetourMaster.h" />
     <ClInclude Include="FileVersion.h" />
     <ClInclude Include="GameData.h" />
+    <ClInclude Include="GameVersion.h" />
     <ClInclude Include="Instructions.h" />
     <ClInclude Include="Message.h" />
     <ClInclude Include="Patcher.h" />

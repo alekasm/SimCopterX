@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include "Patcher.h"
+#include "GameVersion.h"
+
 
 
 
@@ -11,28 +13,18 @@
 class GameData
 {
 public:
-	enum FunctionType { MAIN_LOOP, GLOBAL_INIT, FLAP_UI, CHOPPER_UI, 
-						CD_CHECK, CHOPPER_CLIP, RES_LOOKUP, DS_SLEEP, 
-						SCREEN_CLIP, BITDEPTH_CHECK, VERSIONS, GRAPHICS_INIT, 
-						ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE,
-						CHEAT };
-
-	enum DWORDType { RES_TYPE, MY_SLEEP };
-	enum Version { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, V1 };
-	static void initialize(PEINFO info);
-	static bool PatchGame(std::string game_exe, GameData::Version version);
-	static DWORD GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type);
-	static DWORD GetDWORDAddress(Version version, DWORDType dtype);
-
+	static std::vector<Instructions> GenerateData(PEINFO, GameVersion::Version);
+	static DWORD GetDWORDAddress(GameVersion::Version, GameVersion::DataType);
 private:
-	static DWORD GetFunctionAddress(Version, FunctionType);	
-	static void CreateSleepFunction(DetourMaster *master, GameData::Version version);
-	static void CreateResolutionFunction(DetourMaster *master, GameData::Version version);
-	static void CreateGlobalInitFunction(DetourMaster *master, GameData::Version version);
-	static void CreateCDFunction(DetourMaster *master, GameData::Version version);
-	static void CreateChopperUIFunction(DetourMaster *master, GameData::Version version);
-	static void CreateFlapUIFunction(DetourMaster *master, GameData::Version version);
-	static void CreateChopperClipFunction(DetourMaster *master, GameData::Version version);
-	static void CreateScreenClipFunction(DetourMaster *master, GameData::Version version);
-	static void CreateDDrawPaletteFunction(DetourMaster *master, GameData::Version version);
+	static void CreateRelativeData(DetourMaster*, GameVersion::Version);
+	static DWORD GetFunctionAddress(GameVersion::Version, GameVersion::FunctionType);	
+	static void CreateSleepFunction(DetourMaster*, GameVersion::Version);
+	static void CreateResolutionFunction(DetourMaster*, GameVersion::Version);
+	static void CreateGlobalInitFunction(DetourMaster*, GameVersion::Version);
+	static void CreateCDFunction(DetourMaster*, GameVersion::Version);
+	static void CreateChopperUIFunction(DetourMaster*, GameVersion::Version);
+	static void CreateFlapUIFunction(DetourMaster*, GameVersion::Version);
+	static void CreateChopperClipFunction(DetourMaster*, GameVersion::Version);
+	static void CreateScreenClipFunction(DetourMaster*, GameVersion::Version);
+	static void CreateDDrawPaletteFunction(DetourMaster*, GameVersion::Version);
 };

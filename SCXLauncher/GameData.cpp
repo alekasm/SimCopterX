@@ -1,18 +1,21 @@
 #include "GameData.h"
 
 namespace
-{
-	struct Game
+{	
+	std::map<GameVersion::Version, GameVersion> VersionMap =
 	{
-		std::map<GameData::FunctionType, DWORD> functions;
-		std::map<GameData::DWORDType, DWORD> global_dwords;
+		{GameVersion::Version::VCLASSICS, VersionClassics()},
+		{GameVersion::Version::V11SC, Version11SC()},
+		{GameVersion::Version::V102_PATCH, Version102Patch()},
+		{GameVersion::Version::V11SC_FR, Version11SCFR()},
+		{GameVersion::Version::V1, VersionOriginal()}
 	};
-	std::map<GameData::Version, Game> games;
-	DetourMaster *master;
 }
 
-bool GameData::PatchGame(std::string game_exe, GameData::Version version)
+std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersion::Version version)
 {
+	DetourMaster* master = new DetourMaster(info);
+	CreateRelativeData(master, version);
 	CreateGlobalInitFunction(master, version);
 	CreateResolutionFunction(master, version);
 	CreateSleepFunction(master, version);
@@ -22,28 +25,25 @@ bool GameData::PatchGame(std::string game_exe, GameData::Version version)
 	CreateChopperClipFunction(master, version);
 	CreateScreenClipFunction(master, version);
 	CreateDDrawPaletteFunction(master, version);
-	return Patcher::Patch(master->instructions, game_exe);
+	std::vector<Instructions> ret_ins(master->instructions);	
+	delete master;
+	return ret_ins;
 }
 
-DWORD GameData::GetDWORDOffset(GameData::Version version, GameData::DWORDType dword_type)
-{
-	return master->GetFileOffset(games[version].global_dwords[dword_type]);
-}
-
-void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersion::Version version)
 {
 	//Always use GetSystemPaletteEntries flow instead of manually generating the palette entries
 	//Previously chose flow based on windowed vs fullscreen (windowed manually generated?)
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::DDRAW_PALETTE);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::DDRAW_PALETTE);
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case Version::V11SC:
-	case Version::V11SC_FR:
+	case GameVersion::V11SC:
+	case GameVersion::V11SC_FR:
 		rewrite_start = function_entry + 0x32;
 		break;
-	case Version::V102_PATCH:
-	case Version::VCLASSICS:
+	case GameVersion::V102_PATCH:
+	case GameVersion::VCLASSICS:
 		rewrite_start = function_entry + 0x3F;
 		break;
 	}
@@ -57,20 +57,20 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameData::Versio
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateScreenClipFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::SCREEN_CLIP);
-	DWORD function_res = GameData::GetFunctionAddress(version, GameData::RES_LOOKUP);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::SCREEN_CLIP);
+	DWORD function_res = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
 
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case Version::V11SC:
-	case Version::V11SC_FR:
+	case GameVersion::V11SC:
+	case GameVersion::V11SC_FR:
 		rewrite_start = function_entry + 0x151;
 		break;
-	case Version::V102_PATCH:
-	case Version::VCLASSICS:
+	case GameVersion::V102_PATCH:
+	case GameVersion::VCLASSICS:
 		rewrite_start = function_entry + 0x15E;
 		break;
 	}
@@ -92,9 +92,9 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameData::Version 
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateChopperClipFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateChopperClipFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::CHOPPER_CLIP);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CHOPPER_CLIP);
 	Instructions instructions(function_entry + 0x25);
 	instructions << BYTE(0x01);						//Changes cmp <res type>, 0 to 1 (1 being original resolution)
 	instructions << ByteArray{ 0x74, 0x7 };			//jz (short) 7 bytes
@@ -115,18 +115,18 @@ void GameData::CreateChopperClipFunction(DetourMaster *master, GameData::Version
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateFlapUIFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::FLAP_UI);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::FLAP_UI);
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case Version::V11SC:
-	case Version::V11SC_FR:
+	case GameVersion::V11SC:
+	case GameVersion::V11SC_FR:
 		rewrite_start = function_entry + 0xC;
 		break;
-	case Version::V102_PATCH:
-	case Version::VCLASSICS:
+	case GameVersion::V102_PATCH:
+	case GameVersion::VCLASSICS:
 		rewrite_start = function_entry + 0x19;
 		break;
 	}
@@ -148,10 +148,10 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameData::Version vers
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateChopperUIFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::CHOPPER_UI);
-	DWORD res_dword = GameData::GetDWORDAddress(version, GameData::RES_TYPE);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CHOPPER_UI);
+	DWORD res_dword = GameData::GetDWORDAddress(version, GameVersion::RES_TYPE);
 	DWORD detour_return;
 
 
@@ -159,12 +159,12 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameData::Version v
 	//Unfortunately the instructions are not after our patch.
 	switch (version)
 	{
-	case Version::V11SC:
-	case Version::V11SC_FR:
+	case GameVersion::V11SC:
+	case GameVersion::V11SC_FR:
 		detour_return = function_entry + 0xF2;
 		break;
-	case Version::V102_PATCH:
-	case Version::VCLASSICS:
+	case GameVersion::V102_PATCH:
+	case GameVersion::VCLASSICS:
 		detour_return = function_entry + 0xFF;
 		break;
 	}
@@ -266,9 +266,9 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameData::Version v
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateCDFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateCDFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::CD_CHECK);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CD_CHECK);
 	Instructions instructions(DWORD(function_entry + 0x171));
 	instructions.jmp(DWORD(function_entry + 0x23B));    //jmp <function> (originally jnz)
 
@@ -277,10 +277,10 @@ void GameData::CreateCDFunction(DetourMaster *master, GameData::Version version)
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateSleepFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateSleepFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::MAIN_LOOP);
-	DWORD dsfunction_sleep = GameData::GetFunctionAddress(version, GameData::DS_SLEEP);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::MAIN_LOOP);
+	DWORD dsfunction_sleep = GameData::GetFunctionAddress(version, GameVersion::DS_SLEEP);
 	DWORD sleep_param = master->base_location + 0x4;
 
 	Instructions instructions(DWORD(function_entry + 0x11E));
@@ -302,9 +302,9 @@ void GameData::CreateSleepFunction(DetourMaster *master, GameData::Version versi
 
 }
 
-void GameData::CreateResolutionFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateResolutionFunction(DetourMaster *master, GameVersion::Version version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::RES_LOOKUP);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
 
 	Instructions instructions(DWORD(function_entry + 0x13));
 	instructions << DWORD(0x500);
@@ -328,11 +328,11 @@ void GameData::CreateResolutionFunction(DetourMaster *master, GameData::Version 
 	master->instructions.push_back(instructions);
 
 }
-void GameData::CreateGlobalInitFunction(DetourMaster *master, GameData::Version version)
+void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersion::Version version)
 {
 	//printf("DetourMaster starting at %x\n", master->current_location);
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameData::GLOBAL_INIT);
-	DWORD function_res = GameData::GetFunctionAddress(version, GameData::RES_LOOKUP);
+	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::GLOBAL_INIT);
+	DWORD function_res = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
 
 	/*
 	lea edi, [esi+4040h]     +0x66             <<used in detour
@@ -369,113 +369,21 @@ void GameData::CreateGlobalInitFunction(DetourMaster *master, GameData::Version 
 	master->instructions.push_back(instructions);
 }
 
-DWORD GameData::GetFunctionAddress(Version version, FunctionType ftype)
+DWORD GameData::GetFunctionAddress(GameVersion::Version version, GameVersion::FunctionType ftype)
 {
-	return games[version].functions[ftype];
+	return VersionMap[version].FunctionMap[ftype];
 }
 
-DWORD GameData::GetDWORDAddress(Version version, DWORDType dtype)
+DWORD GameData::GetDWORDAddress(GameVersion::Version version, GameVersion::DataType dtype)
 {
-	return games[version].global_dwords[dtype];
+	return VersionMap[version].DataMap[dtype];
 }
 
-void GameData::initialize(PEINFO info)
-{	
-	if (master)
-	{
-		delete master;
-		master = nullptr;
-	}
-
-	master = new DetourMaster(info);
-	Patcher::SetDetourMaster(master);
-
-	Game version_classics; //February 1998
-	Game version_11sc; //7 November 1996
-	Game version_102patch; // 26 February 1997
-	Game version_11scfr; //7 November 1996 (FR)
-	Game version_1;
-
-	version_classics.global_dwords[RES_TYPE] = 0x5017D0;
-	version_11sc.global_dwords[RES_TYPE] = 0x4F9798;
-	version_11scfr.global_dwords[RES_TYPE] = 0x4F9778;
-	version_102patch.global_dwords[RES_TYPE] = 0x4FE7A0;
-
-	version_classics.functions[GLOBAL_INIT] = 0x45DDB0; 
-	version_11sc.functions[GLOBAL_INIT] = 0x45ADE0;  
-	version_11scfr.functions[GLOBAL_INIT] = 0x459B30;
-	version_102patch.functions[GLOBAL_INIT] = 0x45B540;
-
-	version_classics.functions[MAIN_LOOP] = 0x4308B0;   
-	version_11sc.functions[MAIN_LOOP] = 0x42DBB0;   
-	version_11scfr.functions[MAIN_LOOP] = 0x42C900;
-	version_102patch.functions[MAIN_LOOP] = 0x42E0A0;
-	version_1.functions[MAIN_LOOP] = 0x42DA10;
-
-	version_classics.functions[DS_SLEEP] = 0x62B624;
-	version_11sc.functions[DS_SLEEP] = 0x61D594;
-	version_11scfr.functions[DS_SLEEP] = 0x61D594;
-	version_102patch.functions[DS_SLEEP] = 0x62560C;
-	version_1.functions[DS_SLEEP] = 0x61B588;
-
-	version_classics.functions[CD_CHECK] = 0x435840;   
-	version_11sc.functions[CD_CHECK] = 0x432B20;	
-	version_11scfr.functions[CD_CHECK] = 0x431870;
-	version_102patch.functions[CD_CHECK] = 0x433030;
-	version_1.functions[CD_CHECK] = 0x432900;
-
-	version_classics.functions[CHOPPER_UI] = 0x4124C0;  
-	version_11sc.functions[CHOPPER_UI] = 0x412440;  
-	version_11scfr.functions[CHOPPER_UI] = 0x411190;
-	version_102patch.functions[CHOPPER_UI] = 0x4124F0;
-
-	version_classics.functions[FLAP_UI] = 0x412860;    
-	version_11sc.functions[FLAP_UI] = 0x4127D0;   
-	version_11scfr.functions[FLAP_UI] = 0x411520;
-	version_102patch.functions[FLAP_UI] = 0x412890;
-
-	version_classics.functions[CHOPPER_CLIP] = 0x413170; 
-	version_11sc.functions[CHOPPER_CLIP] = 0x413090;    
-	version_11scfr.functions[CHOPPER_CLIP] = 0x411DE0;
-	version_102patch.functions[CHOPPER_CLIP] = 0x4131A0;
-
-	version_classics.functions[RES_LOOKUP] = 0x4641C0;
-	version_11sc.functions[RES_LOOKUP] = 0x4610A0;
-	version_11scfr.functions[RES_LOOKUP] = 0x45FDF0;
-	version_102patch.functions[RES_LOOKUP] = 0x461930;
-
-	version_classics.functions[SCREEN_CLIP] = 0x430E40; 
-	version_11sc.functions[SCREEN_CLIP] = 0x42E130; 
-	version_11scfr.functions[SCREEN_CLIP] = 0x42CE80;
-	version_102patch.functions[SCREEN_CLIP] = 0x42E630;
-	
-	version_classics.functions[DDRAW_PALETTE] = 0x41CD40;
-	version_11sc.functions[DDRAW_PALETTE] = 0x41C9E0;
-	version_11scfr.functions[DDRAW_PALETTE] = 0x41B730;
-	version_102patch.functions[DDRAW_PALETTE] = 0x41CD60;
-
-
-	//---------- IN PROGRESS
-	version_classics.functions[BITDEPTH_CHECK] = 0x45E870;	//+0x170
-	version_classics.functions[VERSIONS] = 0x45F210;		//Sets the versions for random things like glide, OS, game?
-	version_11sc.functions[VERSIONS] = 0x45C0F0;
-	version_classics.functions[GRAPHICS_INIT] = 0x41C2E0;	//Conditional on whether to initialize glide or DDraw, use to patch DDraw
-	version_classics.functions[ARG_PARSER] = 0x45EB10;		//All command-line arguments processed here
-	version_classics.functions[GFX_SOUND_INIT] = 0x45DEC0;	//+36F (45E22F), if not windowed mode - calls DirectX fullscreen
-	version_classics.functions[ADJUST_WINDOW] = 0x421400;	//Positions the window (LPRECT) in the center of your screen	
-	version_classics.functions[CHEAT] = 0x438370;			//This function will get rewritten, space: 0x240D (9229 bytes)
-
-
-	//---------- Below here contains completely new functions/variables
-	version_classics.global_dwords[MY_SLEEP] = master->base_location + 0x4;
-	version_11sc.global_dwords[MY_SLEEP] = master->base_location + 0x4;
-	version_11scfr.global_dwords[MY_SLEEP] = master->base_location + 0x4;
-	version_102patch.global_dwords[MY_SLEEP] = master->base_location + 0x4;
-	version_1.global_dwords[MY_SLEEP] = master->base_location + 0x4;
-
-	games[VCLASSICS] = version_classics;
-	games[V11SC] = version_11sc;
-	games[V11SC_FR] = version_11scfr;
-	games[V102_PATCH] = version_102patch;
-	games[V1] = version_1;
+void GameData::CreateRelativeData(DetourMaster* master, GameVersion::Version version)
+{
+	VersionMap[version].SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, master->base_location + 0x4);
+	/*
+	Instructions detour_rdata(master->base_location + 0x128);
+	detour_rdata << StringValue("I'm the CEO of McDonnell Douglas", 64);
+	*/
 }

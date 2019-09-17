@@ -15,6 +15,16 @@ struct Instruction {
 	}
 };
 
+struct StringValue {
+	std::string string;
+	unsigned int size_alignment;
+	StringValue(std::string string, unsigned int size_alignment)
+	{
+		this->string = string;
+		this->size_alignment = size_alignment;
+	}
+};
+
 class Instructions
 {
 public:
@@ -40,6 +50,18 @@ public:
 		{
 			container.push_back(Instruction(current_location++, byte[i]));
 		}
+	}
+
+	void operator<<(StringValue string_value)
+	{
+		unsigned int track_address = 0;
+		for (char character : string_value.string)
+		{
+			operator<<(BYTE(character));
+			track_address++;
+		}
+		if (track_address < string_value.size_alignment)
+			relocate(current_location + (string_value.size_alignment - track_address));
 	}
 
 	Instructions(DWORD address)
@@ -141,5 +163,5 @@ public:
 	DataValue(DWORD address, BYTE value) : Instructions(address)
 	{
 		operator<<(value);
-	}
+	}	
 };

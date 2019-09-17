@@ -1,30 +1,16 @@
 #include "Patcher.h"
 
-namespace
-{
-	DetourMaster* detour_master;
-}
-
-void Patcher::SetDetourMaster(DetourMaster* master)
-{
-	detour_master = master;
-}
-
-bool Patcher::Patch(Instructions instructions, std::string exe_fname)
+/*
+bool Patcher::Patch(PEINFO info, Instructions instructions, std::string exe_fname)
 {
 	std::vector<Instructions> ins;
 	ins.push_back(instructions);
-	return Patch(ins, exe_fname);
+	return Patch(info, ins, exe_fname);
 }
+*/
 
-bool Patcher::Patch(std::vector<Instructions> instructions, std::string exe_fname)
-{
-	if (detour_master == nullptr)
-	{
-		OutputDebugString("Patcher has not been initialized yet, DetourMaster is null. \n");
-		return false;
-	}
-
+bool Patcher::Patch(PEINFO info, std::vector<Instructions> instructions, std::string exe_fname)
+{	
 	FILE* efile;
 	int result = fopen_s(&efile, exe_fname.c_str(), "r+");
 
@@ -40,7 +26,7 @@ bool Patcher::Patch(std::vector<Instructions> instructions, std::string exe_fnam
 	{
 		for (Instruction instruction : is.GetInstructions())
 		{
-			DWORD address = detour_master->GetFileOffset(instruction.address);
+			DWORD address = GetFileOffset(info, instruction.address);
 			/*
 			char buffer[256];
 			sprintf_s(buffer, sizeof(buffer), "VA = %x, FO = %x, BYTE: %x \n", instruction.address, address, instruction.byte);
@@ -57,6 +43,23 @@ bool Patcher::Patch(std::vector<Instructions> instructions, std::string exe_fnam
 	int close_result = fclose(efile);
 	OutputDebugString(std::string("Patched file closed successfully: " + close_result == 0 ? "true\n" : "false\n").c_str());
 	return true;
+}
+
+DWORD Patcher::GetFileOffset(PEINFO info, DWORD address)
+{
+	//TODO this function is very inefficient
+	for (auto it = info.data_map.begin(); it != info.data_map.end(); ++it)
+	{
+		DWORD start_address = (0x400000 + it->second.VirtualAddress);
+		DWORD end_address = start_address + it->second.VirtualSize;
+		if (address >= start_address && address <= end_address)
+		{
+			//printf("-     %x is in  %s\n", address, it->first.c_str());
+			return (address - start_address) + it->second.RawDataPointer;
+		}
+	}
+	printf("Failed to find section where address %x belongs\n", address);
+	return NULL;
 }
 
 DWORD Patcher::align(DWORD size, DWORD align, DWORD addr)

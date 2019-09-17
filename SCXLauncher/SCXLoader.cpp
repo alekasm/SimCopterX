@@ -6,7 +6,7 @@ std::vector<std::string> split_string(char delim, std::string split_string);
 MessageValue VerifyOriginalGame(std::string source);
 std::string FormatDirectoryLocation(std::string full_exe_location);
 MessageValue VerifyInstallationDirectory(std::string game_location);
-MessageValue VerifyInstallation(GameData::Version version);
+MessageValue VerifyInstallation( GameVersion::Version version);
 
 
 namespace
@@ -14,22 +14,22 @@ namespace
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
 
-	std::map<std::string, GameData::Version> version_hashes = 
+	std::map<std::string,  GameVersion::Version> version_hashes = 
 	{
-		{"6bc646d182ab8625a0d2394112334005", GameData::Version::VCLASSICS},
-		{"90db54003aa9ba881543c9d2cd0dbfbf", GameData::Version::V11SC},
-		{"d2f5c5eca71075696964d0f91b1163bf", GameData::Version::V102_PATCH},
-		{"b296b26e922bc43705b49f7414d7218f", GameData::Version::V11SC_FR},
-		{"17d5eba3e604229c4b87a68f20520b56", GameData::Version::V1}
+		{"6bc646d182ab8625a0d2394112334005", GameVersion::Version::VCLASSICS},
+		{"90db54003aa9ba881543c9d2cd0dbfbf", GameVersion::Version::V11SC},
+		{"d2f5c5eca71075696964d0f91b1163bf", GameVersion::Version::V102_PATCH},
+		{"b296b26e922bc43705b49f7414d7218f", GameVersion::Version::V11SC_FR},
+		{"17d5eba3e604229c4b87a68f20520b56", GameVersion::Version::V1}
 	};
 
-	std::map<GameData::Version, std::string> version_description = 
+	std::map<GameVersion::Version, std::string> version_description = 
 	{
-		{GameData::Version::VCLASSICS, "Classics Version - February 1998"},
-		{GameData::Version::V11SC, "Version 1.1sc - 7 November 1996"},
-		{GameData::Version::V1, "Version 1.0 - 7 November 1996"},
-		{GameData::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
-		{GameData::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
+		{GameVersion::Version::VCLASSICS, "Classics Version - February 1998"},
+		{GameVersion::Version::V11SC, "Version 1.1sc - 7 November 1996"},
+		{GameVersion::Version::V1, "Version 1.0 - 7 November 1996"},
+		{GameVersion::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
+		{GameVersion::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
 	};
 
 	std::string SimCopterXDirectory;
@@ -41,8 +41,8 @@ namespace
 	std::string patched_hash;
 	int patched_scxversion = -1;
 
-	PEINFO peinfo;
-	GameData::Version game_version;
+	//PEINFO peinfo;
+	GameVersion::Version game_version;
 	FileVersion fileVersion;
 }
 
@@ -140,16 +140,7 @@ bool CreatePatchFile()
 	return false;
 }
 
-bool SCXLoader::InitializeGameData(std::string game_location)
-{
-	if (!Patcher::CreateDetourSection(game_location.c_str(), &peinfo))
-		return false;
-
-	GameData::initialize(peinfo);
-	return true;
-}
-
-bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_installation)
+bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters params)
 {
 	OutputDebugString(std::string("Attempting to patch game at " + game_location + "\n").c_str());
 
@@ -167,7 +158,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_install
 
 	if (!(verifyCurrentValue = VerifyOriginalGame(GameLocation)).Value)
 	{
-		if (!verify_installation)
+		if (!params.verify_install)
 		{
 			std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. Not ";
 			message_body += "attempting to use a backup copy since 'Verify Install' was not selected.\n";
@@ -197,7 +188,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_install
 		}
 	}	
 
-	if (verify_installation)
+	if (params.verify_install)
 	{
 		MessageValue msg_verify;
 		if (!(msg_verify = VerifyInstallationDirectory(GameLocation)).Value)
@@ -229,13 +220,20 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_install
 		return false;
 	}
 
-	if (!InitializeGameData(SCXDirectory("SimCopterX.exe")))
+	PEINFO info;
+	if (!Patcher::CreateDetourSection(SCXDirectory("SimCopterX.exe").c_str(), &info))
 	{
 		ShowMessage("SimCopterX Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
 		return false;
 	}
+		
+	std::vector<Instructions> instructions = GameData::GenerateData(info, game_version);
+	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::MY_SLEEP);
+	DWORD res_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::RES_TYPE);
+	instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time))); 
+	instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
-	if (!GameData::PatchGame(SCXDirectory("SimCopterX.exe"), game_version))
+	if (!Patcher::Patch(info, instructions, SCXDirectory("SimCopterX.exe")))
 	{
 		ShowMessage("SimCopterX Patch Failed", "Failed to patch the game file.\n Make sure the game isn't running or opened in another application");
 		return false;
@@ -256,7 +254,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_install
 		OutputDebugString(std::string("Failed to delete intermediary SimCopterX game file. Still successful... Error: (" + std::to_string(GetLastError()) + ")").c_str());
 	}
 
-	if (verify_installation && !CreatePatchFile())
+	if (params.verify_install && !CreatePatchFile())
 	{
 		ShowMessage("SimCopterX Error", "Failed to create the patch file which stores information about your specific patch.");
 		return false;
@@ -269,7 +267,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, bool verify_install
 		message += "Detected Version: " + version_description[game_version] + "\n";
 
 	message += "Patch location : \n" + game_location + "\n\n";
-	if (verify_installation)
+	if (params.verify_install)
 		message += "If you modify or move this file, you will need to re-patch again.\n";
 	else	
 		message += "You patched this game without 'Verify Install', so you can't launch using SCXLauncher\n";
@@ -354,7 +352,7 @@ bool VerifyPatchedGame()
 	return true;
 }
 
-bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
+bool SCXLoader::StartSCX(SCXParameters params)
 {
 
 	if (patched_scxversion < 0) //This shouldn't happen because the button should not be enabled
@@ -373,14 +371,8 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 	{
 		return false;
 	}
-
-	if (!InitializeGameData(SimCopterGameLocation))
-	{
-		ShowMessage("SimCopterX", "Failed to start the game.\n Make sure the game isn't running or opened in another application");
-		return false;
-	}
 	
-	if (!fullscreen && !GetFileCompatability(SimCopterGameLocation))
+	if (!params.fullscreen && !GetFileCompatability(SimCopterGameLocation))
 	{
 		const char *message =
 			"You must run the SimCopter.exe in 8-bit color to use Windowed mode!\n\n"
@@ -393,17 +385,31 @@ bool SCXLoader::StartSCX(int sleep_time, int resolution_mode, bool fullscreen)
 		return false;
 	}	
 
-	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameData::DWORDType::MY_SLEEP);
-	DWORD res_address = GameData::GetDWORDAddress(game_version, GameData::DWORDType::RES_TYPE);
-	Patcher::Patch(DataValue(sleep_address, BYTE(sleep_time)), SimCopterGameLocation);
-	Patcher::Patch(DataValue(res_address, BYTE(resolution_mode)), SimCopterGameLocation);
+	PEINFO info;
+	if (!Patcher::CreateDetourSection(SCXDirectory("SimCopterX.exe").c_str(), &info))
+	{
+		ShowMessage("SimCopterX Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
+		return false;
+	}
+
+	std::vector<Instructions> instructions;
+	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::MY_SLEEP);
+	DWORD res_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::RES_TYPE);
+	instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
+	instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
+
+	if (!Patcher::Patch(info, instructions, SCXDirectory("SimCopterX.exe")))
+	{
+		ShowMessage("SimCopterX Patch Failed", "Failed to patch the game file.\n Make sure the game isn't running or opened in another application");
+		return false;
+	}
 
 	//Can only get the hash at this point as a reference, can't use it to check for complete validty
 	//because changing sleep time and resolution mode dwords will change the hash
 
 	CreatePatchFile();
 
-	std::string parameters = fullscreen ? "-f" : "-w";
+	std::string parameters = params.fullscreen ? "-f" : "-w";
 	HINSTANCE hInstance = ShellExecuteA(NULL, "open", SimCopterGameLocation.c_str(), parameters.c_str(), NULL, SW_SHOWDEFAULT);
 	int h_result = reinterpret_cast<int>(hInstance);
 	if (h_result <= 31)
@@ -451,7 +457,7 @@ bool SCXLoader::LoadFiles()
 				patched_hash = props.at(0);
 				patched_scxversion = std::atoi(props.at(1).c_str());
 				SimCopterGameLocation = props.at(2);
-				game_version = static_cast<GameData::Version>(std::atoi(props.at(3).c_str()));
+				game_version = static_cast<GameVersion::Version>(std::atoi(props.at(3).c_str()));
 				ValidInstallation = std::atoi(props.at(4).c_str());
 				OutputDebugString(std::string("Game is patched at: " + SimCopterGameLocation + "\n").c_str());	
 				OutputDebugString(std::string("Game version enum: " + std::to_string(static_cast<int>(game_version)) + "\n").c_str());
@@ -533,7 +539,7 @@ std::string CreateMD5Hash(std::string filename_string)
 	}
 }
 
-MessageValue VerifyInstallation(GameData::Version version)
+MessageValue VerifyInstallation(GameVersion::Version version)
 {
 
 	//Yeah all of this is inefficient but who cares, you patch once and this is
@@ -559,13 +565,13 @@ MessageValue VerifyInstallation(GameData::Version version)
 		{"glide.dll", "setup/system/"}
 	};
 
-	std::map<GameData::Version, std::vector<std::string>> dll_map = 
+	std::map<GameVersion::Version, std::vector<std::string>> dll_map = 
 	{
-		{GameData::Version::V1,			{"smackw32.dll"}},
-		{GameData::Version::V11SC,		{"smackw32.dll"}},
-		{GameData::Version::V11SC_FR,	{"smackw32.dll"}},
-		{GameData::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
-		{GameData::Version::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
+		{ GameVersion::Version::V1,			{"smackw32.dll"}},
+		{ GameVersion::Version::V11SC,		{"smackw32.dll"}},
+		{ GameVersion::Version::V11SC_FR,	{"smackw32.dll"}},
+		{ GameVersion::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
+		{ GameVersion::Version::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
 	};
 
 	for (std::string dll : dll_map[version])
