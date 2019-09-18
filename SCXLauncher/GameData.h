@@ -6,15 +6,12 @@
 #include "Patcher.h"
 #include "GameVersion.h"
 
-
-
-
-
 class GameData
 {
 public:
 	static std::vector<Instructions> GenerateData(PEINFO, GameVersion::Version);
 	static DWORD GetDWORDAddress(GameVersion::Version, GameVersion::DataType);
+	static void CreateRelativeData(PEINFO, GameVersion::Version);
 private:
 	static void CreateRelativeData(DetourMaster*, GameVersion::Version);
 	static DWORD GetFunctionAddress(GameVersion::Version, GameVersion::FunctionType);	

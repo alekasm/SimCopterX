@@ -3,9 +3,9 @@
 #include "PEINFO.h"
 
 //0x128 for general variables, 64 = size of cheat string * 32 cheats = 0x800
-static const unsigned int DETOUR_RDATA_VAR_SIZE = 0x128;
-static const unsigned int DETOUR_RDATA_CHEAT_SIZE = 0x800;
-static const unsigned int DETOUR_RDATA_SIZE = DETOUR_RDATA_VAR_SIZE + DETOUR_RDATA_CHEAT_SIZE;
+//static const unsigned int DETOUR_RDATA_VAR_SIZE = 0x128;
+//static const unsigned int DETOUR_RDATA_CHEAT_SIZE = 0x800;
+//static const unsigned int DETOUR_RDATA_SIZE = DETOUR_RDATA_VAR_SIZE + DETOUR_RDATA_CHEAT_SIZE;
 
 struct DetourMaster
 {
@@ -16,7 +16,7 @@ struct DetourMaster
 	{
 		current_location = info.data_map[".detour"].VirtualAddress + 0x400000;
 		base_location = current_location;
-		current_location += DETOUR_RDATA_SIZE; //Reserve space for variables
+		current_location += 0x128; //Reserve space for variables
 	}	
 
 	DWORD GetNextDetour()

@@ -18,11 +18,11 @@ bool Patcher::Patch(PEINFO info, std::vector<Instructions> instructions, std::st
 		for (Instruction instruction : is.GetInstructions())
 		{
 			DWORD address = GetFileOffset(info, instruction.address);
-			/*
+			
 			char buffer[256];
 			sprintf_s(buffer, sizeof(buffer), "VA = %x, FO = %x, BYTE: %x \n", instruction.address, address, instruction.byte);
 			OutputDebugString(buffer);
-			*/
+			
 			fseek(efile, address, SEEK_SET);
 			fprintf(efile, "%c", instruction.byte);
 			bytes_written++;

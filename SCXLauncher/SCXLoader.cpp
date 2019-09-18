@@ -386,19 +386,21 @@ bool SCXLoader::StartSCX(SCXParameters params)
 	}	
 
 	PEINFO info;
-	if (!Patcher::CreateDetourSection(SCXDirectory("SimCopterX.exe").c_str(), &info))
+	if (!Patcher::CreateDetourSection(SimCopterGameLocation.c_str(), &info)) //Should grab detour section
 	{
 		ShowMessage("SimCopterX Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
 		return false;
 	}
 
+	GameData::CreateRelativeData(info, game_version);
+	
 	std::vector<Instructions> instructions;
 	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::MY_SLEEP);
 	DWORD res_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::RES_TYPE);
 	instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
 	instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
-	if (!Patcher::Patch(info, instructions, SCXDirectory("SimCopterX.exe")))
+	if (!Patcher::Patch(info, instructions, SimCopterGameLocation.c_str()))
 	{
 		ShowMessage("SimCopterX Patch Failed", "Failed to patch the game file.\n Make sure the game isn't running or opened in another application");
 		return false;

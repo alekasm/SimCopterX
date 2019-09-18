@@ -2,15 +2,22 @@
 
 namespace
 {	
-	std::map<GameVersion::Version, GameVersion> VersionMap =
+	VersionClassics version_classics;
+	Version11SC version_11sc;
+	Version102Patch version_102patch;
+	Version11SCFR version_11scfr;
+	VersionOriginal version_original;
+
+	std::map<GameVersion::Version, GameVersion* const> VersionMap =
 	{
-		{GameVersion::Version::VCLASSICS, VersionClassics()},
-		{GameVersion::Version::V11SC, Version11SC()},
-		{GameVersion::Version::V102_PATCH, Version102Patch()},
-		{GameVersion::Version::V11SC_FR, Version11SCFR()},
-		{GameVersion::Version::V1, VersionOriginal()}
+		{GameVersion::Version::VCLASSICS, &version_classics},
+		{GameVersion::Version::V11SC, &version_11sc},
+		{GameVersion::Version::V102_PATCH, &version_102patch},
+		{GameVersion::Version::V11SC_FR, &version_11scfr},
+		{GameVersion::Version::V1, &version_original}
 	};
 }
+
 
 std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersion::Version version)
 {
@@ -371,17 +378,23 @@ void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersion::Versi
 
 DWORD GameData::GetFunctionAddress(GameVersion::Version version, GameVersion::FunctionType ftype)
 {
-	return VersionMap[version].FunctionMap[ftype];
+	return VersionMap[version]->FunctionMap[ftype];
 }
 
 DWORD GameData::GetDWORDAddress(GameVersion::Version version, GameVersion::DataType dtype)
 {
-	return VersionMap[version].DataMap[dtype];
+	return VersionMap[version]->DataMap[dtype];
+}
+
+void GameData::CreateRelativeData(PEINFO info, GameVersion::Version version)
+{
+	DWORD detour_address = info.data_map[".detour"].VirtualAddress + 0x400000;
+	VersionMap[version]->SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, detour_address + 0x4);
 }
 
 void GameData::CreateRelativeData(DetourMaster* master, GameVersion::Version version)
 {
-	VersionMap[version].SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, master->base_location + 0x4);
+	VersionMap[version]->SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, master->base_location + 0x4);
 	/*
 	Instructions detour_rdata(master->base_location + 0x128);
 	detour_rdata << StringValue("I'm the CEO of McDonnell Douglas", 64);
