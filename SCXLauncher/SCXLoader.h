@@ -9,15 +9,14 @@
 #include <algorithm>
 #include <regex>
 #include "Patcher.h"
-#include "GameData.h"
 #include "FileVersion.h"
 #include "Message.h"
+#include "GameData.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Advapi32.lib" )
-
 
 struct SCXParameters
 {

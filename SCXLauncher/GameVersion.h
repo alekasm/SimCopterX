@@ -13,7 +13,7 @@ struct FunctionType
 	DWORD DS_SLEEP;
 	DWORD SCREEN_CLIP;
 	DWORD BITDEPTH_CHECK;
-	DWORD VERSIONS;
+	DWORD VERSIONS; 
 	DWORD GRAPHICS_INIT;
 	DWORD ARG_PARSER;
 	DWORD GFX_SOUND_INIT;
@@ -32,14 +32,13 @@ struct DetourOffsetType
 	static const DWORD MY_SLEEP = 0x0;
 };
 
-
 struct GameVersion
 {	
 	FunctionType functions;
 	DataType data;
 };
 
-struct VersionClassics : GameVersion
+const struct VersionClassics : GameVersion
 {
 	VersionClassics()
 	{
@@ -66,7 +65,7 @@ struct VersionClassics : GameVersion
 	}
 } version_classics;
 
-struct Version11SC : GameVersion
+const struct Version11SC : GameVersion
 {
 	Version11SC()
 	{		
@@ -87,7 +86,7 @@ struct Version11SC : GameVersion
 	}
 } version_11sc;
 
-struct Version11SCFR : GameVersion
+const struct Version11SCFR : GameVersion
 {
 	Version11SCFR()
 	{		
@@ -106,7 +105,7 @@ struct Version11SCFR : GameVersion
 	}
 } version_11scfr;
 
-struct Version102Patch : GameVersion
+const struct Version102Patch : GameVersion
 {
 	Version102Patch()
 	{
@@ -125,7 +124,7 @@ struct Version102Patch : GameVersion
 	}
 } version_102patch;
 
-struct VersionOriginal : GameVersion
+const struct VersionOriginal : GameVersion
 {
 	VersionOriginal()
 	{
@@ -135,7 +134,9 @@ struct VersionOriginal : GameVersion
 	}
 } version_original;
 
+
 //The order of this matters
+
 enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL };
 static const GameVersion* const Versions[5] =
 {

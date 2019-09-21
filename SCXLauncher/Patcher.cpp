@@ -131,6 +131,7 @@ bool Patcher::CreateDetourSection(const char *filepath, PEINFO *info)
 	OutputDebugString(std::string("Added .detour section, total sections: " + std::to_string(FH->NumberOfSections) + "\n").c_str());
 	std::string name(reinterpret_cast<char const*>(SH[new_size].Name));
 	info->data_map[name].VirtualAddress = SH[new_size].VirtualAddress;
+	info->data_map[name].RealVirtualAddress = SH[new_size].VirtualAddress + WIN32_PE_ENTRY;
 	info->data_map[name].RawDataPointer = SH[new_size].PointerToRawData;
 	info->data_map[name].VirtualSize = SH[new_size].Misc.VirtualSize;
 

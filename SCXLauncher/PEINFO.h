@@ -15,6 +15,7 @@ struct PEINFO
 
 	DWORD GetDetourVirtualAddress(DWORD offset = 0x0)
 	{
+		OutputDebugString(std::string("Detour Virtual Address: " + std::to_string(data_map[".detour"].RealVirtualAddress) + "\n").c_str());
 		return data_map[".detour"].RealVirtualAddress + offset;
 	}
 

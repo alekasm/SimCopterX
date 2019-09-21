@@ -1,10 +1,10 @@
 #pragma once
 #include <Windows.h>
-#include <map>
 #include <vector>
 #include <string>
 #include "Patcher.h"
 #include "GameVersion.h"
+
 
 class GameData
 {

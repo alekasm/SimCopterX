@@ -1,6 +1,6 @@
 #include <Windows.h>
 #include <string>
-#include <Windowsx.h> //Button_SetCheck macro
+#include <Windowsx.h> //Button_SetCheck macro`
 #include <CommCtrl.h> //https://docs.microsoft.com/en-us/windows/desktop/api/commctrl/
 #include <iostream>
 #include "resource.h"

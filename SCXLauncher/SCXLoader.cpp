@@ -226,7 +226,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 		ShowMessage("SimCopterX Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
 		return false;
 	}
-		
+	
 	std::vector<Instructions> instructions = GameData::GenerateData(info, game_version);
 	DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
 	DWORD res_address = Versions[game_version]->data.RES_TYPE;
