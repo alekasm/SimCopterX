@@ -6,7 +6,7 @@ std::vector<std::string> split_string(char delim, std::string split_string);
 MessageValue VerifyOriginalGame(std::string source);
 std::string FormatDirectoryLocation(std::string full_exe_location);
 MessageValue VerifyInstallationDirectory(std::string game_location);
-MessageValue VerifyInstallation( GameVersion::Version version);
+MessageValue VerifyInstallation(GameVersions version);
 
 
 namespace
@@ -14,22 +14,22 @@ namespace
 	const std::string patch_file("SCXPatch.dat");
 	const std::string game_file("SimCopter.exe");
 
-	std::map<std::string,  GameVersion::Version> version_hashes = 
+	std::map<std::string,  GameVersions> version_hashes = 
 	{
-		{"6bc646d182ab8625a0d2394112334005", GameVersion::Version::VCLASSICS},
-		{"90db54003aa9ba881543c9d2cd0dbfbf", GameVersion::Version::V11SC},
-		{"d2f5c5eca71075696964d0f91b1163bf", GameVersion::Version::V102_PATCH},
-		{"b296b26e922bc43705b49f7414d7218f", GameVersion::Version::V11SC_FR},
-		{"17d5eba3e604229c4b87a68f20520b56", GameVersion::Version::V1}
+		{"6bc646d182ab8625a0d2394112334005", GameVersions::VCLASSICS},
+		{"90db54003aa9ba881543c9d2cd0dbfbf", GameVersions::V11SC},
+		{"d2f5c5eca71075696964d0f91b1163bf", GameVersions::V102_PATCH},
+		{"b296b26e922bc43705b49f7414d7218f", GameVersions::V11SC_FR},
+		{"17d5eba3e604229c4b87a68f20520b56", GameVersions::ORIGINAL}
 	};
 
-	std::map<GameVersion::Version, std::string> version_description = 
+	std::map<GameVersions, std::string> version_description = 
 	{
-		{GameVersion::Version::VCLASSICS, "Classics Version - February 1998"},
-		{GameVersion::Version::V11SC, "Version 1.1SC - 7 November 1996"},
-		{GameVersion::Version::V1, "Version 1.0 - 7 November 1996"},
-		{GameVersion::Version::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
-		{GameVersion::Version::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
+		{GameVersions::VCLASSICS, "Classics Version - February 1998"},
+		{GameVersions::V11SC, "Version 1.1SC - 7 November 1996"},
+		{GameVersions::ORIGINAL, "Version 1.0 - 7 November 1996"},
+		{GameVersions::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
+		{GameVersions::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
 	};
 
 	std::string SimCopterXDirectory;
@@ -42,7 +42,7 @@ namespace
 	int patched_scxversion = -1;
 
 	//PEINFO peinfo;
-	GameVersion::Version game_version;
+	GameVersions game_version;
 	FileVersion fileVersion;
 }
 
@@ -228,8 +228,8 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 	}
 		
 	std::vector<Instructions> instructions = GameData::GenerateData(info, game_version);
-	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::MY_SLEEP);
-	DWORD res_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::RES_TYPE);
+	DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
+	DWORD res_address = Versions[game_version]->data.RES_TYPE;
 	instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time))); 
 	instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
@@ -392,11 +392,9 @@ bool SCXLoader::StartSCX(SCXParameters params)
 		return false;
 	}
 
-	GameData::CreateRelativeData(info, game_version);
-	
 	std::vector<Instructions> instructions;
-	DWORD sleep_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::MY_SLEEP);
-	DWORD res_address = GameData::GetDWORDAddress(game_version, GameVersion::DataType::RES_TYPE);
+	DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
+	DWORD res_address = Versions[game_version]->data.RES_TYPE;
 	instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
 	instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
@@ -459,7 +457,7 @@ bool SCXLoader::LoadFiles()
 				patched_hash = props.at(0);
 				patched_scxversion = std::atoi(props.at(1).c_str());
 				SimCopterGameLocation = props.at(2);
-				game_version = static_cast<GameVersion::Version>(std::atoi(props.at(3).c_str()));
+				game_version = static_cast<GameVersions>(std::atoi(props.at(3).c_str()));
 				ValidInstallation = std::atoi(props.at(4).c_str());
 				OutputDebugString(std::string("Game is patched at: " + SimCopterGameLocation + "\n").c_str());	
 				OutputDebugString(std::string("Game version enum: " + std::to_string(static_cast<int>(game_version)) + "\n").c_str());
@@ -541,7 +539,7 @@ std::string CreateMD5Hash(std::string filename_string)
 	}
 }
 
-MessageValue VerifyInstallation(GameVersion::Version version)
+MessageValue VerifyInstallation(GameVersions version)
 {
 
 	//Yeah all of this is inefficient but who cares, you patch once and this is
@@ -567,13 +565,13 @@ MessageValue VerifyInstallation(GameVersion::Version version)
 		{"glide.dll", "setup/system/"}
 	};
 
-	std::map<GameVersion::Version, std::vector<std::string>> dll_map = 
+	std::map<GameVersions, std::vector<std::string>> dll_map = 
 	{
-		{ GameVersion::Version::V1,			{"smackw32.dll"}},
-		{ GameVersion::Version::V11SC,		{"smackw32.dll"}},
-		{ GameVersion::Version::V11SC_FR,	{"smackw32.dll"}},
-		{ GameVersion::Version::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
-		{ GameVersion::Version::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
+		{ GameVersions::ORIGINAL,	{"smackw32.dll"}},
+		{ GameVersions::V11SC,		{"smackw32.dll"}},
+		{ GameVersions::V11SC_FR,	{"smackw32.dll"}},
+		{ GameVersions::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
+		{ GameVersions::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
 	};
 
 	for (std::string dll : dll_map[version])

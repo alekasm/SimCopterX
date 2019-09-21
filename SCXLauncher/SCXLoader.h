@@ -12,7 +12,6 @@
 #include "GameData.h"
 #include "FileVersion.h"
 #include "Message.h"
-#include "GameVersion.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Shell32.lib")

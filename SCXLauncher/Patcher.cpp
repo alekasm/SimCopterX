@@ -18,11 +18,11 @@ bool Patcher::Patch(PEINFO info, std::vector<Instructions> instructions, std::st
 		for (Instruction instruction : is.GetInstructions())
 		{
 			DWORD address = GetFileOffset(info, instruction.address);
-			
+			/*
 			char buffer[256];
 			sprintf_s(buffer, sizeof(buffer), "VA = %x, FO = %x, BYTE: %x \n", instruction.address, address, instruction.byte);
 			OutputDebugString(buffer);
-			
+			*/
 			fseek(efile, address, SEEK_SET);
 			fprintf(efile, "%c", instruction.byte);
 			bytes_written++;
@@ -41,7 +41,7 @@ DWORD Patcher::GetFileOffset(PEINFO info, DWORD address)
 	//TODO this function is very inefficient
 	for (auto it = info.data_map.begin(); it != info.data_map.end(); ++it)
 	{
-		DWORD start_address = (0x400000 + it->second.VirtualAddress);
+		DWORD start_address = it->second.RealVirtualAddress;
 		DWORD end_address = start_address + it->second.VirtualSize;
 		if (address >= start_address && address <= end_address)
 		{
@@ -95,6 +95,7 @@ bool Patcher::CreateDetourSection(const char *filepath, PEINFO *info)
 	{
 		std::string name(reinterpret_cast<char const*>(SH[i].Name));
 		info->data_map[name].VirtualAddress = SH[i].VirtualAddress;
+		info->data_map[name].RealVirtualAddress = SH[i].VirtualAddress + WIN32_PE_ENTRY;
 		info->data_map[name].RawDataPointer = SH[i].PointerToRawData;
 		info->data_map[name].VirtualSize = SH[i].Misc.VirtualSize;
 		if (name.compare(section_name) == 0)
@@ -134,7 +135,7 @@ bool Patcher::CreateDetourSection(const char *filepath, PEINFO *info)
 	info->data_map[name].VirtualSize = SH[new_size].Misc.VirtualSize;
 
 	char buffer[256];
-	snprintf(buffer, sizeof(buffer), "Created .detour section at 0x%x\n", info->data_map[".detour"].VirtualAddress);
+	sprintf_s(buffer, sizeof(buffer), "Created .detour section at 0x%x\n", info->data_map[".detour"].VirtualAddress);
 	OutputDebugString(std::string(buffer).c_str());
 
 	BOOL result = CloseHandle(file);

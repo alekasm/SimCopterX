@@ -1,28 +1,8 @@
 #include "GameData.h"
 
-namespace
-{	
-	VersionClassics version_classics;
-	Version11SC version_11sc;
-	Version102Patch version_102patch;
-	Version11SCFR version_11scfr;
-	VersionOriginal version_original;
-
-	std::map<GameVersion::Version, GameVersion* const> VersionMap =
-	{
-		{GameVersion::Version::VCLASSICS, &version_classics},
-		{GameVersion::Version::V11SC, &version_11sc},
-		{GameVersion::Version::V102_PATCH, &version_102patch},
-		{GameVersion::Version::V11SC_FR, &version_11scfr},
-		{GameVersion::Version::V1, &version_original}
-	};
-}
-
-
-std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersion::Version version)
+std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions version)
 {
 	DetourMaster* master = new DetourMaster(info);
-	CreateRelativeData(master, version);
 	CreateGlobalInitFunction(master, version);
 	CreateResolutionFunction(master, version);
 	CreateSleepFunction(master, version);
@@ -37,20 +17,20 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersion::Versi
 	return ret_ins;
 }
 
-void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersions version)
 {
 	//Always use GetSystemPaletteEntries flow instead of manually generating the palette entries
 	//Previously chose flow based on windowed vs fullscreen (windowed manually generated?)
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::DDRAW_PALETTE);
+	DWORD function_entry = Versions[version]->functions.DDRAW_PALETTE;
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case GameVersion::V11SC:
-	case GameVersion::V11SC_FR:
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:
 		rewrite_start = function_entry + 0x32;
 		break;
-	case GameVersion::V102_PATCH:
-	case GameVersion::VCLASSICS:
+	case GameVersions::V102_PATCH:
+	case GameVersions::VCLASSICS:
 		rewrite_start = function_entry + 0x3F;
 		break;
 	}
@@ -64,20 +44,20 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersion::Ver
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::SCREEN_CLIP);
-	DWORD function_res = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
+	DWORD function_entry = Versions[version]->functions.SCREEN_CLIP;
+	DWORD function_res = Versions[version]->functions.RES_LOOKUP;
 
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case GameVersion::V11SC:
-	case GameVersion::V11SC_FR:
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:
 		rewrite_start = function_entry + 0x151;
 		break;
-	case GameVersion::V102_PATCH:
-	case GameVersion::VCLASSICS:
+	case GameVersions::V102_PATCH:
+	case GameVersions::VCLASSICS:
 		rewrite_start = function_entry + 0x15E;
 		break;
 	}
@@ -99,9 +79,9 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersion::Versi
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateChopperClipFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateChopperClipFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CHOPPER_CLIP);
+	DWORD function_entry = Versions[version]->functions.CHOPPER_CLIP;
 	Instructions instructions(function_entry + 0x25);
 	instructions << BYTE(0x01);						//Changes cmp <res type>, 0 to 1 (1 being original resolution)
 	instructions << ByteArray{ 0x74, 0x7 };			//jz (short) 7 bytes
@@ -122,18 +102,18 @@ void GameData::CreateChopperClipFunction(DetourMaster *master, GameVersion::Vers
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::FLAP_UI);
+	DWORD function_entry = Versions[version]->functions.FLAP_UI;
 	DWORD rewrite_start;
 	switch (version)
 	{
-	case GameVersion::V11SC:
-	case GameVersion::V11SC_FR:
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:
 		rewrite_start = function_entry + 0xC;
 		break;
-	case GameVersion::V102_PATCH:
-	case GameVersion::VCLASSICS:
+	case GameVersions::V102_PATCH:
+	case GameVersions::VCLASSICS:
 		rewrite_start = function_entry + 0x19;
 		break;
 	}
@@ -155,10 +135,10 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersion::Version v
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CHOPPER_UI);
-	DWORD res_dword = GameData::GetDWORDAddress(version, GameVersion::RES_TYPE);
+	DWORD function_entry = Versions[version]->functions.CHOPPER_UI;
+	DWORD res_dword = Versions[version]->data.RES_TYPE;
 	DWORD detour_return;
 
 
@@ -166,12 +146,12 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersion::Versio
 	//Unfortunately the instructions are not after our patch.
 	switch (version)
 	{
-	case GameVersion::V11SC:
-	case GameVersion::V11SC_FR:
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:
 		detour_return = function_entry + 0xF2;
 		break;
-	case GameVersion::V102_PATCH:
-	case GameVersion::VCLASSICS:
+	case GameVersions::V102_PATCH:
+	case GameVersions::VCLASSICS:
 		detour_return = function_entry + 0xFF;
 		break;
 	}
@@ -273,9 +253,9 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersion::Versio
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateCDFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateCDFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::CD_CHECK);
+	DWORD function_entry = Versions[version]->functions.CD_CHECK;
 	Instructions instructions(DWORD(function_entry + 0x171));
 	instructions.jmp(DWORD(function_entry + 0x23B));    //jmp <function> (originally jnz)
 
@@ -284,11 +264,11 @@ void GameData::CreateCDFunction(DetourMaster *master, GameVersion::Version versi
 	master->instructions.push_back(instructions);
 }
 
-void GameData::CreateSleepFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateSleepFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::MAIN_LOOP);
-	DWORD dsfunction_sleep = GameData::GetFunctionAddress(version, GameVersion::DS_SLEEP);
-	DWORD sleep_param = master->base_location + 0x4;
+	DWORD function_entry = Versions[version]->functions.MAIN_LOOP;
+	DWORD dsfunction_sleep = Versions[version]->functions.DS_SLEEP;
+	DWORD sleep_param = master->info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
 
 	Instructions instructions(DWORD(function_entry + 0x11E));
 	instructions.jmp(master->GetNextDetour());                      //jmp <detour> 
@@ -309,9 +289,9 @@ void GameData::CreateSleepFunction(DetourMaster *master, GameVersion::Version ve
 
 }
 
-void GameData::CreateResolutionFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateResolutionFunction(DetourMaster *master, GameVersions version)
 {
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
+	DWORD function_entry = Versions[version]->functions.RES_LOOKUP;
 
 	Instructions instructions(DWORD(function_entry + 0x13));
 	instructions << DWORD(0x500);
@@ -335,11 +315,11 @@ void GameData::CreateResolutionFunction(DetourMaster *master, GameVersion::Versi
 	master->instructions.push_back(instructions);
 
 }
-void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersion::Version version)
+void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersions version)
 {
 	//printf("DetourMaster starting at %x\n", master->current_location);
-	DWORD function_entry = GameData::GetFunctionAddress(version, GameVersion::GLOBAL_INIT);
-	DWORD function_res = GameData::GetFunctionAddress(version, GameVersion::RES_LOOKUP);
+	DWORD function_entry = Versions[version]->functions.GLOBAL_INIT;
+	DWORD function_res = Versions[version]->functions.RES_LOOKUP;
 
 	/*
 	lea edi, [esi+4040h]     +0x66             <<used in detour
@@ -374,29 +354,4 @@ void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersion::Versi
 	printf("[Global Initialization] Generated a total of %d bytes\n", is_size);
 	//printf("DetourMaster now points to address starting at %x\n", master->current_location);
 	master->instructions.push_back(instructions);
-}
-
-DWORD GameData::GetFunctionAddress(GameVersion::Version version, GameVersion::FunctionType ftype)
-{
-	return VersionMap[version]->FunctionMap[ftype];
-}
-
-DWORD GameData::GetDWORDAddress(GameVersion::Version version, GameVersion::DataType dtype)
-{
-	return VersionMap[version]->DataMap[dtype];
-}
-
-void GameData::CreateRelativeData(PEINFO info, GameVersion::Version version)
-{
-	DWORD detour_address = info.data_map[".detour"].VirtualAddress + 0x400000;
-	VersionMap[version]->SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, detour_address + 0x4);
-}
-
-void GameData::CreateRelativeData(DetourMaster* master, GameVersion::Version version)
-{
-	VersionMap[version]->SetDataTypeLocation(GameVersion::DataType::MY_SLEEP, master->base_location + 0x4);
-	/*
-	Instructions detour_rdata(master->base_location + 0x128);
-	detour_rdata << StringValue("I'm the CEO of McDonnell Douglas", 64);
-	*/
 }

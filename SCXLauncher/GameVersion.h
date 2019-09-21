@@ -1,162 +1,147 @@
 #pragma once
 #include <Windows.h>
-#include <map>
+
+struct FunctionType
+{
+	DWORD MAIN_LOOP;
+	DWORD GLOBAL_INIT;
+	DWORD FLAP_UI;
+	DWORD CHOPPER_UI;
+	DWORD CD_CHECK;
+	DWORD CHOPPER_CLIP;
+	DWORD RES_LOOKUP;
+	DWORD DS_SLEEP;
+	DWORD SCREEN_CLIP;
+	DWORD BITDEPTH_CHECK;
+	DWORD VERSIONS;
+	DWORD GRAPHICS_INIT;
+	DWORD ARG_PARSER;
+	DWORD GFX_SOUND_INIT;
+	DWORD ADJUST_WINDOW;
+	DWORD DDRAW_PALETTE;
+	DWORD CHEAT;
+};
+
+struct DataType
+{
+	DWORD RES_TYPE;
+};
+
+struct DetourOffsetType
+{
+	static const DWORD MY_SLEEP = 0x0;
+};
+
 
 struct GameVersion
-{
-	enum Version { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, V1 };
-
-	enum FunctionType {
-		MAIN_LOOP, GLOBAL_INIT, FLAP_UI, CHOPPER_UI,
-		CD_CHECK, CHOPPER_CLIP, RES_LOOKUP, DS_SLEEP,
-		SCREEN_CLIP, BITDEPTH_CHECK, VERSIONS, GRAPHICS_INIT,
-		ARG_PARSER, GFX_SOUND_INIT, ADJUST_WINDOW, DDRAW_PALETTE,
-		CHEAT
-	};
-
-	enum DataType { RES_TYPE, MY_SLEEP };
-
-	void SetDataTypeLocation(DataType Type, DWORD Location)
-	{
-		DataMap[Type] = Location;
-	}
-
-	void SetFunctionTypeLocation(FunctionType Type, DWORD Location)
-	{
-		FunctionMap[Type] = Location;
-	}
-
-	std::map<FunctionType, DWORD> FunctionMap;	
-	std::map<DataType, DWORD> DataMap;
+{	
+	FunctionType functions;
+	DataType data;
 };
 
 struct VersionClassics : GameVersion
 {
 	VersionClassics()
 	{
-		FunctionMap =
-		{
-			{GLOBAL_INIT, 0x45DDB0},
-			{MAIN_LOOP, 0x4308B0},
-			{DS_SLEEP, 0x62B624},
-			{CD_CHECK, 0x435840},
-			{CHOPPER_UI, 0x4124C0},
-			{FLAP_UI, 0x412860},
-			{CHOPPER_CLIP, 0x413170},
-			{RES_LOOKUP, 0x4641C0},
-			{SCREEN_CLIP, 0x430E40},
-			{DDRAW_PALETTE, 0x41CD40},
+		functions.GLOBAL_INIT = 0x45DDB0;
+		functions.MAIN_LOOP = 0x4308B0;
+		functions.DS_SLEEP = 0x62B624;
+		functions.CD_CHECK = 0x435840;
+		functions.CHOPPER_UI = 0x4124C0;
+		functions.FLAP_UI = 0x412860;
+		functions.CHOPPER_CLIP = 0x413170;
+		functions.RES_LOOKUP = 0x4641C0;
+		functions.SCREEN_CLIP = 0x430E40;
+		functions.DDRAW_PALETTE = 0x41CD40;
 
-			{BITDEPTH_CHECK, 0x45E870},		//+0x170
-			{VERSIONS, 0x45F210},			//Contains versions for everything (game, glide, os, etc)
-			{GRAPHICS_INIT, 0x41C2E0},		//Conditional on whether to initialize glide or DDraw, use to patch DDraw
-			{ARG_PARSER, 0x45EB10},			//All command-line arguments processed here
-			{GFX_SOUND_INIT, 0x45DEC0},		//+36F (45E22F), if not windowed mode - calls DirectX fullscreen
-			{ADJUST_WINDOW, 0x421400},		//Positions the window (LPRECT) in the center of your screen
-			{CHEAT, 0x438370}				//This function will get rewritten, space: 0x240D (9229 bytes)
-		};
+		functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
+		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game = glide = os = etc)
+		functions.GRAPHICS_INIT = 0x41C2E0;		//Conditional on whether to initialize glide or DDraw = use to patch DDraw
+		functions.ARG_PARSER = 0x45EB10;		//All command-line arguments processed here
+		functions.GFX_SOUND_INIT = 0x45DEC0;	//+36F (45E22F) = if not windowed mode - calls DirectX fullscreen
+		functions.ADJUST_WINDOW = 0x421400;		//Positions the window (LPRECT) in the center of your screen
+		functions.CHEAT = 0x438370;				//This function will get rewritten, space: 0x240D (9229 bytes)
 
-		DataMap =
-		{
-			{RES_TYPE, 0x5017D0}
-		};
+		data.RES_TYPE = 0x5017D0;
 	}
-};
-
+} version_classics;
 
 struct Version11SC : GameVersion
 {
 	Version11SC()
-	{
-		FunctionMap =
-		{
-			{GLOBAL_INIT, 0x45ADE0},
-			{MAIN_LOOP, 0x42DBB0},
-			{DS_SLEEP, 0x61D594},
-			{CD_CHECK, 0x432B20},
-			{CHOPPER_UI, 0x412440},
-			{FLAP_UI, 0x4127D0},
-			{CHOPPER_CLIP, 0x413090},
-			{RES_LOOKUP, 0x4610A0},
-			{SCREEN_CLIP, 0x42E130},
-			{DDRAW_PALETTE, 0x41C9E0},
+	{		
+		functions.GLOBAL_INIT = 0x45ADE0;
+		functions.MAIN_LOOP = 0x42DBB0;
+		functions.DS_SLEEP = 0x61D594;
+		functions.CD_CHECK = 0x432B20;
+		functions.CHOPPER_UI = 0x412440;
+		functions.FLAP_UI = 0x4127D0;
+		functions.CHOPPER_CLIP = 0x413090;
+		functions.RES_LOOKUP = 0x4610A0;
+		functions.SCREEN_CLIP = 0x42E130;
+		functions.DDRAW_PALETTE = 0x41C9E0;
 
-			{VERSIONS, 0x45C0F0}
-		};
-
-		DataMap =
-		{
-			{RES_TYPE, 0x4F9798}
-		};
+		functions.VERSIONS = 0x45C0F0;
+		
+		data.RES_TYPE = 0x4F9798;		
 	}
-};
-
+} version_11sc;
 
 struct Version11SCFR : GameVersion
 {
 	Version11SCFR()
-	{
-		FunctionMap =
-		{
-			{GLOBAL_INIT, 0x459B30},
-			{MAIN_LOOP, 0x42C900},
-			{DS_SLEEP, 0x61D594},
-			{CD_CHECK, 0x431870},
-			{CHOPPER_UI, 0x411190},
-			{FLAP_UI, 0x411520},
-			{CHOPPER_CLIP, 0x411DE0},
-			{RES_LOOKUP, 0x45FDF0},
-			{SCREEN_CLIP, 0x42CE80},
-			{DDRAW_PALETTE, 0x41B730}
-		};
-
-		DataMap =
-		{
-			{RES_TYPE, 0x4F9778}
-		};
+	{		
+		functions.GLOBAL_INIT = 0x459B30;
+		functions.MAIN_LOOP = 0x42C900;
+		functions.DS_SLEEP = 0x61D594;
+		functions.CD_CHECK = 0x431870;
+		functions.CHOPPER_UI = 0x411190;
+		functions.FLAP_UI = 0x411520;
+		functions.CHOPPER_CLIP = 0x411DE0;
+		functions.RES_LOOKUP = 0x45FDF0;
+		functions.SCREEN_CLIP = 0x42CE80;
+		functions.DDRAW_PALETTE = 0x41B730;
+		
+		data.RES_TYPE = 0x4F9778;		
 	}
-};
+} version_11scfr;
 
 struct Version102Patch : GameVersion
 {
 	Version102Patch()
 	{
-		FunctionMap =
-		{
-			{GLOBAL_INIT, 0x45B540},
-			{MAIN_LOOP, 0x42E0A0},
-			{DS_SLEEP, 0x62560C},
-			{CD_CHECK, 0x433030},
-			{CHOPPER_UI, 0x4124F0},
-			{FLAP_UI, 0x412890},
-			{CHOPPER_CLIP, 0x4131A0},
+		functions.GLOBAL_INIT = 0x45B540;
+		functions.MAIN_LOOP = 0x42E0A0;
+		functions.DS_SLEEP = 0x62560C;
+		functions.CD_CHECK = 0x433030;
+		functions.CHOPPER_UI = 0x4124F0;
+		functions.FLAP_UI = 0x412890;
+		functions.CHOPPER_CLIP = 0x4131A0;
+		functions.RES_LOOKUP = 0x461930;
+		functions.SCREEN_CLIP = 0x42E630;
+		functions.DDRAW_PALETTE = 0x41CD60;
 
-			{RES_LOOKUP, 0x461930},
-			{SCREEN_CLIP, 0x42E630},
-			{DDRAW_PALETTE, 0x41CD60}
-		};
-
-		DataMap =
-		{
-			{RES_TYPE, 0x4FE7A0}
-		};
+		data.RES_TYPE = 0x4FE7A0;
 	}
-};
+} version_102patch;
 
 struct VersionOriginal : GameVersion
 {
 	VersionOriginal()
 	{
-		FunctionMap =
-		{
-			{MAIN_LOOP, 0x42DA10},
-			{DS_SLEEP, 0x61B588},
-			{CD_CHECK, 0x432900}
-		};
-
-		DataMap =
-		{
-
-		};
+		functions.MAIN_LOOP = 0x42DA10;
+		functions.DS_SLEEP = 0x61B588;
+		functions.CD_CHECK = 0x432900;
 	}
+} version_original;
+
+//The order of this matters
+enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL };
+static const GameVersion* const Versions[5] =
+{
+	&version_classics,
+	&version_11sc,
+	&version_102patch,
+	&version_11scfr,
+	&version_original
 };

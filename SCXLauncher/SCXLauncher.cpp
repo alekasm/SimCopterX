@@ -326,7 +326,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 					ofn.lpstrInitialDir = NULL;
 					ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 					GetOpenFileName(&ofn);
-					//bool verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
 					SCXParameters params = GetParameters();
 					bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
 					Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);

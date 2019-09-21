@@ -11,10 +11,12 @@ struct DetourMaster
 {
 	DWORD current_location;
 	DWORD base_location;
+	PEINFO info;
 
 	DetourMaster(PEINFO info)
 	{
-		current_location = info.data_map[".detour"].VirtualAddress + 0x400000;
+		this->info = info;
+		current_location = info.GetDetourVirtualAddress();
 		base_location = current_location;
 		current_location += 0x128; //Reserve space for variables
 	}	
