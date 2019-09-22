@@ -27,6 +27,7 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersions ver
 	{
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
+	case GameVersions::ORIGINAL:
 		rewrite_start = function_entry + 0x32;
 		break;
 	case GameVersions::V102_PATCH:
@@ -54,6 +55,7 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersions versi
 	{
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
+	case GameVersions::ORIGINAL:
 		rewrite_start = function_entry + 0x151;
 		break;
 	case GameVersions::V102_PATCH:
@@ -110,6 +112,7 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersions version)
 	{
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
+	case GameVersions::ORIGINAL:
 		rewrite_start = function_entry + 0xC;
 		break;
 	case GameVersions::V102_PATCH:
@@ -148,6 +151,7 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersions versio
 	{
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
+	case GameVersions::ORIGINAL:
 		detour_return = function_entry + 0xF2;
 		break;
 	case GameVersions::V102_PATCH:

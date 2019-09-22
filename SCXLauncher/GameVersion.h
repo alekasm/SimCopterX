@@ -54,7 +54,7 @@ const struct VersionClassics : GameVersion
 		functions.DDRAW_PALETTE = 0x41CD40;
 
 		functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
-		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game = glide = os = etc)
+		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game, glide, os, etc)
 		functions.GRAPHICS_INIT = 0x41C2E0;		//Conditional on whether to initialize glide or DDraw = use to patch DDraw
 		functions.ARG_PARSER = 0x45EB10;		//All command-line arguments processed here
 		functions.GFX_SOUND_INIT = 0x45DEC0;	//+36F (45E22F) = if not windowed mode - calls DirectX fullscreen
@@ -128,15 +128,24 @@ const struct VersionOriginal : GameVersion
 {
 	VersionOriginal()
 	{
+		functions.GLOBAL_INIT = 0x45AC60;
 		functions.MAIN_LOOP = 0x42DA10;
 		functions.DS_SLEEP = 0x61B588;
 		functions.CD_CHECK = 0x432900;
+		functions.CHOPPER_UI = 0x412440;
+		functions.FLAP_UI = 0x4127D0;
+		functions.CHOPPER_CLIP = 0x413090;
+		functions.RES_LOOKUP = 0x460F20;
+		functions.SCREEN_CLIP = 0x42DF90;
+		functions.DDRAW_PALETTE = 0x41CA10;
+		
+
+		data.RES_TYPE = 0x4F8798;
 	}
 } version_original;
 
 
 //The order of this matters
-
 enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL };
 static const GameVersion* const Versions[5] =
 {

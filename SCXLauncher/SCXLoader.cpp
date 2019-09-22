@@ -23,10 +23,11 @@ namespace
 		{"17d5eba3e604229c4b87a68f20520b56", GameVersions::ORIGINAL}
 	};
 
+	//The advertisted dates in techtips is wrong
 	std::map<GameVersions, std::string> version_description = 
 	{
 		{GameVersions::VCLASSICS, "Classics Version - February 1998"},
-		{GameVersions::V11SC, "Version 1.1SC - 7 November 1996"},
+		{GameVersions::V11SC, "Version 1.1SC - 7 November 1996"}, 
 		{GameVersions::ORIGINAL, "Version 1.0 - 7 November 1996"},
 		{GameVersions::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
 		{GameVersions::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
@@ -41,7 +42,6 @@ namespace
 	std::string patched_hash;
 	int patched_scxversion = -1;
 
-	//PEINFO peinfo;
 	GameVersions game_version;
 	FileVersion fileVersion;
 }
