@@ -1,24 +1,17 @@
 #include <Windows.h>
 #include <string>
 #include <Windowsx.h> //Button_SetCheck macro`
-#include <CommCtrl.h> //https://docs.microsoft.com/en-us/windows/desktop/api/commctrl/
+#include <CommCtrl.h> //CommCtrl includes sliders
 #include <iostream>
 #include "resource.h"
 #include "SCXLoader.h"
 
-//CommCtrl includes sliders
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initialize(HINSTANCE hInstance);
 SCXParameters GetParameters();
 
-/*
-
-TODO: Add version output to 'patch only'
-
-*/
 namespace
 {
-
 	LPCSTR ResolutionOptions[4] = { "[4:3] 640x480 (Original)", "[4:3] 1024x768", "[16:9] 1280x720", "[16:10] 1280x800" };
 	unsigned int SpeedValues[7] = { 1, 4, 8, 16, 24, 32, 64 };
 

@@ -161,7 +161,8 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 		if (!params.verify_install)
 		{
 			std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. Not ";
-			message_body += "attempting to use a backup copy since 'Verify Install' was not selected.\n";
+			message_body += "attempting to use a backup copy since 'Verify Install' was not selected.\n\n";
+			message_body += verifyCurrentValue.Message;
 			ShowMessage("SimCopterX Error", message_body);
 			return false;
 		}
