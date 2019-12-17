@@ -120,6 +120,8 @@ const struct Version102Patch : GameVersion
 		functions.SCREEN_CLIP = 0x42E630;
 		functions.DDRAW_PALETTE = 0x41CD60;
 
+		functions.BITDEPTH_CHECK = 0x45C000; //+0x170
+
 		data.RES_TYPE = 0x4FE7A0;
 	}
 } version_102patch;

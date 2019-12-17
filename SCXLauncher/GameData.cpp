@@ -317,8 +317,8 @@ void GameData::CreateResolutionFunction(DetourMaster *master, GameVersions versi
 	printf("[Resolution Lookup] Generated a total of %d bytes\n", is_size);
 	//printf("DetourMaster now points to address starting at %x\n", master->current_location);
 	master->instructions.push_back(instructions);
-
 }
+
 void GameData::CreateGlobalInitFunction(DetourMaster *master, GameVersions version)
 {
 	//printf("DetourMaster starting at %x\n", master->current_location);

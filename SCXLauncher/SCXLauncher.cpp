@@ -102,26 +102,6 @@ void destroy()
 		DestroyWindow(settingsHwnd);
 }
 
-void SetErrorCode(int id)
-{
-	DestroyWindow(wsRadioButton);
-	DestroyWindow(fsRadioButton);
-	DestroyWindow(speedTextbox);
-	DestroyWindow(verifyCheckbox);
-	DestroyWindow(PatchButton);
-	DestroyWindow(StartButton);
-	DestroyWindow(resolutionCombobox);
-	DestroyWindow(SensitivityBar);
-	DestroyWindow(HelpButton);
-
-	char buffer[64];
-	sprintf_s(buffer, "Error Code: %d \r\n Please report this error on the forums!", id);
-	resolutionTextbox = CreateWindow("EDIT", buffer,
-		WS_CHILD | WS_VISIBLE | ES_LEFT | ES_READONLY | ES_MULTILINE,
-		5, 10, 400, 190, settingsHwnd, NULL, NULL, NULL);
-	UpdateWindow(resolutionTextbox);
-}
-
 void initialize(HINSTANCE hInstance)
 {
 	SettingsClass.cbClsExtra = NULL;

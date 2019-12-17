@@ -38,7 +38,6 @@ namespace
 	std::string SimCopterGameInstallDirectory = "";
 	bool ValidInstallation = false;
 
-	const std::string version_url("http://simcopter.net/versions.dat");
 	std::string patched_hash;
 	int patched_scxversion = -1;
 
@@ -364,7 +363,7 @@ bool SCXLoader::StartSCX(SCXParameters params)
 
 	if (!ValidInstallation) //This shouldn't happen because the button should not be enabled
 	{
-		ShowMessage("SimStreetsX Error", "You need to patch the game using 'Verify Install'");
+		ShowMessage("SimCopterX Error", "You need to patch the game using 'Verify Install'");
 		return false;
 	}
 
