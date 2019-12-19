@@ -31,11 +31,10 @@ class SCXLoader
 public:
 	static bool LoadFiles();	
 	static int GetPatchedSCXVersion();
-	static std::string GetSimCopterGameLocation();
 	static bool CreatePatchedGame(std::string, SCXParameters);
 	static bool StartSCX(SCXParameters);	
 	static bool GetValidInstallation();
-	static const unsigned int SCX_VERSION = 8;
+	static const unsigned int SCX_VERSION = 9;	
 private:
 	static bool GetFileCompatability(std::string);
 };
