@@ -118,12 +118,17 @@ void initialize(HINSTANCE hInstance)
 	SettingsClass.style = CS_HREDRAW | CS_VREDRAW;
 	RegisterClassEx(&SettingsClass);
 
+	unsigned int window_width = 400;
+	unsigned int window_height = 300;
+	unsigned int window_x = (GetSystemMetrics(SM_CXSCREEN) - window_width) / 2;
+	unsigned int window_y = (GetSystemMetrics(SM_CYSCREEN) - window_height) / 2;
+
 	settingsHwnd = CreateWindowEx(
 		WS_EX_STATICEDGE,
 		SettingsClass.lpszClassName, 
 		std::string("SimCopterX - Version " + std::to_string(SCXLoader::SCX_VERSION)).c_str(),
 		WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-		0, 0, 400, 300, NULL, NULL, NULL, NULL);
+		window_x, window_y, window_width, window_height, NULL, NULL, NULL, NULL);
 
 	verifyCheckbox = CreateWindow(
 		"Button", "Verify Install", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTOCHECKBOX,

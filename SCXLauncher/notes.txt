@@ -1,0 +1,74 @@
+All occurrences of hardcoded dimension values:
+
+(Instruction) 412277 = [0x280] Equivalent to Streets "CALL_INIT_SKYBOX", skybox width
+(Instruction) 41226C = [0xC8] Equivalent to Streets "CALL_INIT_SKYBOX", skybox height
+
+(Instruction) 46374E = [0x280] Equivalent to Streets "INITIALIZE_SKYBOX", skybox width
+(Instruction) 463758 = [0xC8] Equivalent to Streets "INITIALIZE_SKYBOX", skybox height
+
+Note: Skybox value must be 128K buffer (640*200=128K). For some reason the 
+"RENDER_SKYBOX" function is missing in SimCopter, however the resolution can be modified
+and the skybox doesn't ghost or under/over buffer.
+
+(Instruction) 41250B = [0x280] Patched CHOPPER_UI
+
+(Instruction) 445E4F = [0x280] Unknown
+(Instruction) 445E54 = [0x1E0] Unknown
+
+(Instruction) 44FC5A = [0x118] Unknown
+(Instruction) 44FA20 = [0x280] Unknown
+
+(Instruction) 45E9C2 = [0x280] width < 640 check
+(Instruction) 45E9D4 = [0x1E0] height < 480 check
+(Instruction) 45E9E0 = [0x08] bit depth = 8 check
+
+(Instruction) 474B3E = [0x280] Unknown, analysis fails Skybox?
+(Instruction) 474B44 = [0xC8] Unknown, analysis fails Skybox?
+
+(Instruction) 480CAF = [0x280] Unknown, (repeated multiple times in switch case)
+
+(Data) 50179C = [0xC8] Unknown, potential skybox
+
+
+(Instruction) 44C74A = [0x144] cheat map.x
+(Instruction) 44C74F = [0x200] cheat map.y
+
+
+nGuiDebugWindow = 500394
+nHangarBmp = 50133C
+dHangarBmp = 501348
+
+Function 43F260 = load hanger
+ebx+11A = day/night time
+
+436800(8, 0, nhangar.bmp)
+464930(LPCSTR filename) : 464930("D:\\Games\\SimCopterClassics\\SIMCOPTER\\bmp\\nhangar.bmp")
+CreateFile(filename, 0x8000000, 0x3, ecx, 0x3, FILE_ATTRIBUTE_NORMAL, NULL);
+
+
+43EBFF
+405A3E
+413F54
+
+43ED01 = Change viewport x value (hangar)
+1127 - 1024 = 103
+viewport.x ranges from 0 to 103
+
+5019AC = do not try to edit this file
+
+
+
+--------------------------
+Languages (500708):
+1 = English
+2 = Unknown
+3 = French
+4 = German
+5 = Italian
+6 = Spanish
+7 = Dutch
+8 = Unknown
+9 = Unknown
+10 = Unknown
+11 = Swedish
+
