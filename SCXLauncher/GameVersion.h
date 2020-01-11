@@ -21,6 +21,7 @@ struct FunctionType
 	DWORD DDRAW_PALETTE;
 	DWORD CHEAT;
 	DWORD HANGAR_MAIN;
+	DWORD UNK_RENDER_1;
 };
 
 struct DataType
@@ -54,6 +55,7 @@ const struct VersionClassics : GameVersion
 		functions.SCREEN_CLIP = 0x430E40;
 		functions.DDRAW_PALETTE = 0x41CD40;
 		functions.HANGAR_MAIN = 0x43ECC0;
+		functions.UNK_RENDER_1 = 0x44C550;
 
 		functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
 		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game, glide, os, etc)
@@ -82,6 +84,7 @@ const struct Version11SC : GameVersion
 		functions.SCREEN_CLIP = 0x42E130;
 		functions.DDRAW_PALETTE = 0x41C9E0;
 		functions.HANGAR_MAIN = 0x43BFA0;
+		functions.UNK_RENDER_1 = 0x449850;
 
 		functions.VERSIONS = 0x45C0F0;
 		
@@ -104,6 +107,7 @@ const struct Version11SCFR : GameVersion
 		functions.SCREEN_CLIP = 0x42CE80;
 		functions.DDRAW_PALETTE = 0x41B730;
 		functions.HANGAR_MAIN = 0x43ACF0;
+		functions.UNK_RENDER_1 = 0x4485A0;
 		
 		data.RES_TYPE = 0x4F9778;		
 	}
@@ -124,6 +128,7 @@ const struct Version102Patch : GameVersion
 		functions.SCREEN_CLIP = 0x42E630;
 		functions.DDRAW_PALETTE = 0x41CD60;
 		functions.HANGAR_MAIN = 0x43C4F0;
+		functions.UNK_RENDER_1 = 0x449DA0;
 
 		functions.BITDEPTH_CHECK = 0x45C000; //+0x170
 
@@ -146,6 +151,7 @@ const struct VersionOriginal : GameVersion
 		functions.SCREEN_CLIP = 0x42DF90;
 		functions.DDRAW_PALETTE = 0x41CA10;
 		functions.HANGAR_MAIN = 0x43BD40;
+		functions.UNK_RENDER_1 = 0x4496E0;
 		
 
 		data.RES_TYPE = 0x4F8798;

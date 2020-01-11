@@ -21,4 +21,5 @@ private:
 	static void CreateScreenClipFunction(DetourMaster*, GameVersions);
 	static void CreateDDrawPaletteFunction(DetourMaster*, GameVersions);
 	static void CreateHangarMainFunction(DetourMaster*, GameVersions);
+	static void CreateMapCheatFunction(DetourMaster*, GameVersions);
 };

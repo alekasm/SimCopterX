@@ -13,6 +13,7 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions versi
 	CreateScreenClipFunction(master, version);
 	CreateDDrawPaletteFunction(master, version);
 	CreateHangarMainFunction(master, version);
+	CreateMapCheatFunction(master, version);
 	std::vector<Instructions> ret_ins(master->instructions);	
 	delete master;
 	return ret_ins;
@@ -136,6 +137,32 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersions version)
 
 	size_t is_size = instructions.GetInstructions().size();
 	printf("[Chopper Flap UI] Generated a total of %d bytes\n", is_size);
+	master->instructions.push_back(instructions);
+}
+
+void GameData::CreateMapCheatFunction(DetourMaster* master, GameVersions version)
+{
+	DWORD res_dword = Versions[version]->data.RES_TYPE;
+	DWORD function_entry = Versions[version]->functions.UNK_RENDER_1;
+
+	Instructions instructions(DWORD(function_entry + 0x1FA));
+	instructions.jmp(master->GetNextDetour());
+	instructions.cmp(res_dword, 0x1);
+	instructions << ByteArray{ 0x75, 0x0F }; //jnz
+	instructions << BYTE(0x68);
+	instructions << DWORD(0x144);
+	instructions << BYTE(0x68);
+	instructions << DWORD(0x200);
+	instructions.jmp(DWORD(function_entry + 0x204), FALSE);
+	instructions << ByteArray{ 0x8B, 0x8E, 0xD4, 0x00, 0x00, 0x00 }; // mov ecx, [esi+0xD4] //Screen height
+	instructions << ByteArray{ 0x83, 0xE9, 0x68 }; //sub ecx, 102. Map =  124 x 98, create 4 px buffer	
+	instructions << BYTE(0x51); //push ecx
+	instructions << ByteArray{ 0x6A, 0x04 }; //push 0x2
+	instructions.jmp(DWORD(function_entry + 0x204), FALSE);
+
+	size_t is_size = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size);
+	printf("[Map Cheat] Generated a total of %d bytes\n", is_size);
 	master->instructions.push_back(instructions);
 }
 
