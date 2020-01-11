@@ -12,6 +12,7 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions versi
 	CreateChopperClipFunction(master, version);
 	CreateScreenClipFunction(master, version);
 	CreateDDrawPaletteFunction(master, version);
+	CreateHangarMainFunction(master, version);
 	std::vector<Instructions> ret_ins(master->instructions);	
 	delete master;
 	return ret_ins;
@@ -291,6 +292,112 @@ void GameData::CreateSleepFunction(DetourMaster *master, GameVersions version)
 	//printf("DetourMaster now points to address starting at %x\n", master->current_location);
 	master->instructions.push_back(instructions);
 
+}
+
+void GameData::CreateHangarMainFunction(DetourMaster* master, GameVersions version)
+{
+
+	DWORD function_entry = Versions[version]->functions.HANGAR_MAIN;
+	
+	DWORD detour_entry_2;
+	DWORD detour_return_2;
+
+	switch (version)
+	{
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:	
+	case GameVersions::V102_PATCH:
+	case GameVersions::VCLASSICS:
+		detour_entry_2 = function_entry + 0x1D5;
+		detour_return_2 = function_entry + 0x1E0;
+		break;	
+	case GameVersions::ORIGINAL:
+		detour_entry_2 = function_entry + 0x1DB;
+		detour_return_2 = function_entry + 0x1E6;		
+		break;
+	}
+
+	DWORD viewport_x_offset;
+	DWORD offset_bg_ptr;
+	switch (version)
+	{
+	case GameVersions::V11SC:
+	case GameVersions::V11SC_FR:
+	case GameVersions::V102_PATCH:
+	case GameVersions::ORIGINAL:	
+		viewport_x_offset = 0x14A;
+		offset_bg_ptr = 0x13E;
+		break;
+	case GameVersions::VCLASSICS:
+		viewport_x_offset = 0x152;
+		offset_bg_ptr = 0x146;
+		break;
+	}
+
+
+	
+	Instructions instructions(DWORD(function_entry + 0x41));
+	instructions.jmp(master->GetNextDetour());
+
+	//Patches scrolling in the hangar for high resolution
+	instructions << ByteArray{ 0x89, 0x86 }; 
+	instructions << viewport_x_offset; //mov [esi+0x152], eax
+	instructions << ByteArray{ 0x79, 0x0B }; //jns 0xC 
+	instructions.jmp(function_entry + 0x61, FALSE);
+	instructions << ByteArray{ 0x3B, 0xF9 }; // cmp edi, ecx
+	instructions << ByteArray{ 0x7F, 0x02 }; // jg
+	instructions << ByteArray{ 0x8B, 0xF9 }; // mov edi, ecx
+	instructions << ByteArray{ 0x2B, 0xCF }; // sub ecx, edi
+	instructions << ByteArray{ 0x3B, 0xC8 }; // cmp ecx, eax
+	instructions << ByteArray{ 0x7D, 0x06 }; // jge
+	instructions << ByteArray{ 0x89, 0x8E }; 
+	instructions << viewport_x_offset; // mov [esi+152], ecx
+	instructions.jmp(function_entry + 0x61, FALSE);
+	size_t is_size1 = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size1);
+
+	/*
+	End result:
+	esi+152 = viewport.x (edx)
+    esi+18 = screen width (eax)	
+	*/
+	instructions.relocate(detour_entry_2);
+	instructions.jmp(master->GetNextDetour());
+
+	instructions << BYTE(0x51); //push ecx
+	instructions << ByteArray{ 0x8B, 0x8E }; 
+	instructions << offset_bg_ptr; //mov ecx, [esi+0x146]
+	instructions << ByteArray{ 0x8B, 0x49, 0x08 }; //mov ecx, [ecx+0x8] 
+
+	instructions << ByteArray{ 0x8B, 0x46, 0x18 }; //mov eax, [esi+0x18]
+	instructions << ByteArray{ 0x2B, 0x46, 0x10 }; //sub eax, dword ptr ds:[esi+0x10]
+
+	//Check if for some reason edx < 0 (shouldnt be), 
+	//should be verified above when we assign in [esi+0x152]
+	instructions << ByteArray{ 0x83, 0xFA, 00 }; // cmp edx, 0
+	instructions << ByteArray{ 0x7F, 0x02 }; // jg 2
+	instructions << ByteArray{ 0x33, 0xD2 }; //xor edx, edx
+
+	instructions << ByteArray{ 0x03, 0xC2 }; //add eax, edx
+
+	instructions << ByteArray{ 0x3B, 0xC1 }; //cmp eax, ecx
+	instructions << ByteArray{ 0x7E, 0x0A }; //jle if screen width < background width
+
+	instructions << ByteArray{ 0x2B, 0xC8 }; // sub ecx, eax (creates negative)
+	instructions << ByteArray{ 0x03, 0xC1 }; //add eax, ecx (adds negative)
+	instructions << ByteArray{ 0x03, 0xD1 }; //add edx, ecx (adds negative)
+	instructions << ByteArray{ 0x79, 0x02 }; //jns
+	instructions << ByteArray{ 0x33, 0xD2 }; //xor edx, edx
+	
+    //Continue
+	instructions << BYTE(0x59); //pop ecx	
+	instructions << ByteArray{ 0x8B, 0x5E, 0x20 }; //mov ebx, [esi + 20h]
+	instructions.jmp(detour_return_2, FALSE); //continue back to push eax
+
+	size_t is_size2 = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size2 - is_size1);
+	printf("[Hangar Main] Generated a total of %d bytes\n", instructions.GetInstructions().size());
+	master->instructions.push_back(instructions);
 }
 
 void GameData::CreateResolutionFunction(DetourMaster *master, GameVersions version)

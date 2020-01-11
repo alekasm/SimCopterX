@@ -3,7 +3,7 @@
 bool Patcher::Patch(PEINFO info, std::vector<Instructions> instructions, std::string exe_fname)
 {	
 	FILE* efile;
-	int result = fopen_s(&efile, exe_fname.c_str(), "r+");
+	int result = fopen_s(&efile, exe_fname.c_str(), "rb+");
 
 	if (efile == NULL)
 	{

@@ -50,13 +50,27 @@ CreateFile(filename, 0x8000000, 0x3, ecx, 0x3, FILE_ATTRIBUTE_NORMAL, NULL);
 405A3E
 413F54
 
+
+The issue with the hangar is a subtraction overflow where
+1127(hangar.bmp) - current screen size
+In the function 43ECC0, the screen size is stored in esi+0x18
+
 43ED01 = Change viewport x value (hangar)
 1127 - 1024 = 103
 viewport.x ranges from 0 to 103
 
+43EE95 mov     eax, [esi+18h]
+
+Another comparison against screen width/height:
+403C43 +0x18 = width
+403C48 +0x1C = height
+
+Load into memory:
+405940+E
+
 5019AC = do not try to edit this file
 
-
+4DD070->44C077->43ECC0
 
 --------------------------
 Languages (500708):

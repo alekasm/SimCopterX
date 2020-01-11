@@ -20,4 +20,5 @@ private:
 	static void CreateChopperClipFunction(DetourMaster*, GameVersions);
 	static void CreateScreenClipFunction(DetourMaster*, GameVersions);
 	static void CreateDDrawPaletteFunction(DetourMaster*, GameVersions);
+	static void CreateHangarMainFunction(DetourMaster*, GameVersions);
 };
