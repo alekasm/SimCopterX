@@ -22,6 +22,7 @@ struct FunctionType
 	DWORD CHEAT;
 	DWORD HANGAR_MAIN;
 	DWORD UNK_RENDER_1;
+	DWORD RENDER_SIMS;
 };
 
 struct DataType
@@ -129,6 +130,7 @@ const struct Version102Patch : GameVersion
 		functions.DDRAW_PALETTE = 0x41CD60;
 		functions.HANGAR_MAIN = 0x43C4F0;
 		functions.UNK_RENDER_1 = 0x449DA0;
+		functions.RENDER_SIMS = 0x4D44B0;
 
 		functions.BITDEPTH_CHECK = 0x45C000; //+0x170
 

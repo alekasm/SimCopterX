@@ -14,6 +14,7 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions versi
 	CreateDDrawPaletteFunction(master, version);
 	CreateHangarMainFunction(master, version);
 	CreateMapCheatFunction(master, version);
+	RenderSimsFunction(master, version);
 	std::vector<Instructions> ret_ins(master->instructions);	
 	delete master;
 	return ret_ins;
@@ -319,6 +320,42 @@ void GameData::CreateSleepFunction(DetourMaster *master, GameVersions version)
 	//printf("DetourMaster now points to address starting at %x\n", master->current_location);
 	master->instructions.push_back(instructions);
 
+}
+
+void GameData::RenderSimsFunction(DetourMaster* master, GameVersions version)
+{
+	DWORD function_entry = Versions[version]->functions.RENDER_SIMS;
+
+	//First remove all the instructions which try and store the address 
+	//of the element in the array. 
+	Instructions instructions(function_entry + 0x35);
+	instructions.nop(7); // mov eax, [esp+AC]
+	instructions.nop(2); // mov ebp, [ecx]
+	instructions.nop(1); // push eax
+	instructions.nop(3); //call [ebp+28]
+	instructions.relocate(function_entry + 0x46);
+	instructions.nop(4); //nop [esp+34], eax
+
+	//Now rewrite the original call, but use a safety length check
+	instructions.relocate(function_entry + 0x109);
+	DWORD detour = master->GetNextDetour();
+	instructions.jmp(detour, FALSE);
+	instructions.nop(2); //clean up for debugging
+	instructions.relocate(detour);
+	instructions << ByteArray{ 0x8B, 0x8C, 0x24, 0xA8, 0x00, 0x00, 0x00 }; //mov ecx, [esp+0xA8]
+	instructions << ByteArray{ 0x8B, 0x49, 0x28 }; //mov ecx, [ecx+0x28]
+	instructions << ByteArray{ 0x8B, 0x84, 0x24, 0xAC, 0x00, 0x00, 0x00 }; //mov eax, [esp+0xAC] (index arg)
+	instructions << ByteArray{ 0x3B, 0x41, 0x14 }; //cmp eax, [ecx+0x14] (compare index arg against length)
+	instructions.jge(function_entry + 0x2F0); //jump if outside bounds, dont render
+	instructions << ByteArray{ 0x8B, 0x49, 0x04 }; //mov ecx, [ecx+0x4] (the array)
+	instructions << ByteArray{ 0x8B, 0x04, 0x81 }; //mov eax, [ecx+eax*4] (the element in the array)
+	instructions << ByteArray{ 0x8D, 0x2C, 0xD0 }; //lea ebp, [eax+edx*8] (the instructions we overwrote on detour)
+	instructions.jmp(function_entry + 0x110);
+
+	size_t is_size = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size);
+	printf("[Render Sims Fix] Generated a total of %d bytes\n", is_size);
+	master->instructions.push_back(instructions);
 }
 
 void GameData::CreateHangarMainFunction(DetourMaster* master, GameVersions version)

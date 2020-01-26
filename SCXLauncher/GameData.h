@@ -22,4 +22,5 @@ private:
 	static void CreateDDrawPaletteFunction(DetourMaster*, GameVersions);
 	static void CreateHangarMainFunction(DetourMaster*, GameVersions);
 	static void CreateMapCheatFunction(DetourMaster*, GameVersions);
+	static void RenderSimsFunction(DetourMaster*, GameVersions);
 };
