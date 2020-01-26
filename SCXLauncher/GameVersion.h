@@ -57,6 +57,7 @@ const struct VersionClassics : GameVersion
 		functions.DDRAW_PALETTE = 0x41CD40;
 		functions.HANGAR_MAIN = 0x43ECC0;
 		functions.UNK_RENDER_1 = 0x44C550;
+		functions.RENDER_SIMS = 0x4D68E0;
 
 		functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
 		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game, glide, os, etc)
@@ -86,6 +87,7 @@ const struct Version11SC : GameVersion
 		functions.DDRAW_PALETTE = 0x41C9E0;
 		functions.HANGAR_MAIN = 0x43BFA0;
 		functions.UNK_RENDER_1 = 0x449850;
+		functions.RENDER_SIMS = 0x4CFB30;
 
 		functions.VERSIONS = 0x45C0F0;
 		
@@ -109,6 +111,7 @@ const struct Version11SCFR : GameVersion
 		functions.DDRAW_PALETTE = 0x41B730;
 		functions.HANGAR_MAIN = 0x43ACF0;
 		functions.UNK_RENDER_1 = 0x4485A0;
+		functions.RENDER_SIMS = 0x4D18B0;
 		
 		data.RES_TYPE = 0x4F9778;		
 	}
@@ -154,7 +157,7 @@ const struct VersionOriginal : GameVersion
 		functions.DDRAW_PALETTE = 0x41CA10;
 		functions.HANGAR_MAIN = 0x43BD40;
 		functions.UNK_RENDER_1 = 0x4496E0;
-		
+		functions.RENDER_SIMS = 0x4CF2C0;		
 
 		data.RES_TYPE = 0x4F8798;
 	}

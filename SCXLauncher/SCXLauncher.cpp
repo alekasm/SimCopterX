@@ -13,7 +13,7 @@ SCXParameters GetParameters();
 namespace
 {
 	LPCSTR ResolutionOptions[4] = { "[4:3] 640x480 (Original)", "[4:3] 1024x768", "[16:9] 1280x720", "[16:10] 1280x800" };
-	unsigned int SpeedValues[7] = { 1, 4, 8, 16, 24, 32, 64 };
+	unsigned int SpeedValues[9] = { 1, 4, 8, 12, 16, 20, 24, 32, 64 };
 
 	HWND PatchButton; 
 	HWND StartButton; 
@@ -31,7 +31,7 @@ namespace
 	int resolutionValue = 0;
 	bool fullscreenValue = true;
 
-	HWND SensitivityBar;
+	HWND SleepBar;
 	HWND resolutionTextbox;
 
 	WNDCLASSEX SettingsClass;
@@ -145,7 +145,7 @@ void initialize(HINSTANCE hInstance)
 		"COMBOBOX", "", WS_VISIBLE | WS_CHILDWINDOW | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_BORDER,
 		10, 132, 195, 100, settingsHwnd, NULL, NULL, NULL);
 
-	SensitivityBar = CreateWindow(
+	SleepBar = CreateWindow(
 		TRACKBAR_CLASS, "TEST", WS_VISIBLE | WS_CHILD | TBS_HORZ | TBS_AUTOTICKS,
 		220, 144, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
@@ -174,10 +174,10 @@ void initialize(HINSTANCE hInstance)
 		345, 225, 30, 25, settingsHwnd, NULL,
 		NULL, NULL);
 
-	SendMessage(SensitivityBar, TBM_SETRANGEMIN, WPARAM(FALSE), LPARAM(1));
-	SendMessage(SensitivityBar, TBM_SETRANGEMAX, WPARAM(FALSE), LPARAM(7));
-	SendMessage(SensitivityBar, TBM_SETPOS, WPARAM(FALSE), LPARAM(4));
-	SendMessage(SensitivityBar, TBM_SETTICFREQ, WPARAM(1), LPARAM(0));
+	SendMessage(SleepBar, TBM_SETRANGEMIN, WPARAM(FALSE), LPARAM(1));
+	SendMessage(SleepBar, TBM_SETRANGEMAX, WPARAM(FALSE), LPARAM(9));
+	SendMessage(SleepBar, TBM_SETPOS, WPARAM(FALSE), LPARAM(5));
+	SendMessage(SleepBar, TBM_SETTICFREQ, WPARAM(1), LPARAM(0));
 
 	UpdateWindow(PatchButton);
 	UpdateWindow(verifyCheckbox);
@@ -186,7 +186,7 @@ void initialize(HINSTANCE hInstance)
 
 	UpdateWindow(StartButton);
 	UpdateWindow(HelpButton);
-	UpdateWindow(SensitivityBar);
+	UpdateWindow(SleepBar);
 
 
 	for (int i = 0; i < sizeof(ResolutionOptions) / sizeof(LPCSTR); i++)
