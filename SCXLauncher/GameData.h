@@ -23,4 +23,5 @@ private:
 	static void CreateHangarMainFunction(DetourMaster*, GameVersions);
 	static void CreateMapCheatFunction(DetourMaster*, GameVersions);
 	static void RenderSimsFunction(DetourMaster*, GameVersions);
+	static void PatchChopperDamageFunction(DetourMaster*, GameVersions);
 };

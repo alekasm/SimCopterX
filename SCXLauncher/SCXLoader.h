@@ -34,7 +34,7 @@ public:
 	static bool CreatePatchedGame(std::string, SCXParameters);
 	static bool StartSCX(SCXParameters);	
 	static bool GetValidInstallation();
-	static const unsigned int SCX_VERSION = 11;	
+	static const unsigned int SCX_VERSION = 12;	
 private:
 	static bool GetFileCompatability(std::string);
 };

@@ -29,15 +29,6 @@ and the skybox doesn't ghost or under/over buffer.
 
 (Data) 50179C = [0xC8] Unknown, potential skybox
 
-nGuiDebugWindow = 500394
-nHangarBmp = 50133C
-dHangarBmp = 501348
-
-Function 43F260 = load hanger
-ebx+11A = day/night time
-
-5019AC = do not try to edit this file
-
 --------------------------
 Languages (500708):
 1 = English
@@ -51,4 +42,48 @@ Languages (500708):
 9 = Unknown
 10 = Unknown
 11 = Swedish
+-------------------------
+In-Progress (102 patch):
+
+Currently when a helicopter is new from the factory, it's health is max_health + 1
+which causes the helicopter to act as if it were damaged. 
+
+0x486F17 = writes the chopper health from factory
+0x487965 = writes the chopper health on decrease
+0x48C95B = writes the chopper health on increase (from repairs)
+
+chopper values initiated in function: sub_48C330
+
+0x509E8C = health pointer
+0x5DF770 = health
+509C90 + 0xD0 = health (base = chopper?)
+       + 0x4C = max health
+
+464171 = address where variables are loaded from file
+
+48BEC9 = division for damage, lower number = higher damage
+chopper with full health doesnt reach this
+
+Fix for chopper movement on full health (always calculate):
+nop 0x48BD10+0xD4 (cmp [ebx+0xD0], ecx)
+jmp 0x48BE35
+
+Access health:
+004873D3 - 83 BB D0000000 00 - cmp dword ptr [ebx+000000D0],00
+0048C28A - 8B 96 D0000000  - mov edx,[esi+000000D0]
+0048722F - 83 BB D0000000 00 - cmp dword ptr [ebx+000000D0],00
+0048BDE4 - 39 8B D0000000  - cmp [ebx+000000D0],ecx
+0048BED1 - 2B 83 D0000000  - sub eax,[ebx+000000D0]
+004536D1 - 8B 80 D0000000  - mov eax,[eax+000000D0]
+00487952 - 8B 83 D0000000  - mov eax,[ebx+000000D0]
+00487965 - 89 83 D0000000  - mov [ebx+000000D0],eax
+
+
+
+
+
+Game Crashing:
+Warp me to career: 21
+Crashes with f4, northwest part of map - called near police station
+
 

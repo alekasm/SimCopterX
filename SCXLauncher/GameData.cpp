@@ -15,6 +15,7 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions versi
 	CreateHangarMainFunction(master, version);
 	CreateMapCheatFunction(master, version);
 	RenderSimsFunction(master, version);
+	PatchChopperDamageFunction(master, version);
 	std::vector<Instructions> ret_ins(master->instructions);	
 	delete master;
 	return ret_ins;
@@ -461,6 +462,43 @@ void GameData::CreateHangarMainFunction(DetourMaster* master, GameVersions versi
 	size_t is_size2 = instructions.GetInstructions().size();
 	master->SetLastDetourSize(is_size2 - is_size1);
 	printf("[Hangar Main] Generated a total of %d bytes\n", instructions.GetInstructions().size());
+	master->instructions.push_back(instructions);
+}
+
+void GameData::PatchChopperDamageFunction(DetourMaster* master, GameVersions version)
+{
+	/*
+	This patch forces the chopper damage calculation to always happen. Previously if max health - current health = 0 (no damage),
+	then this calculation would be skipped. If this calculation is skipped, then for some reason the chopper would incorrectly
+	sway as if it had taken some damage. Additionally, a chopper is never repaired to exactly its full health - due to division
+	its possible to be 1-2 health below max, therefore the "max health sway" bug would only appear after a chopper was purchased
+	or after the level switched. This patch only ensures that the calculation is always called regardless of damage taken.
+
+	AOB: B9 14 00 00 00 8B 40 4C 2B 83 D0 00 00 00
+	*/
+
+	DWORD function_offset;
+	switch (version)
+	{
+	case V11SC:
+	case V11SC_FR:
+		function_offset = 0xDB;
+		break;
+	case VCLASSICS:
+	case V102_PATCH:
+		function_offset = 0xD4;
+		break;
+	case ORIGINAL:
+		function_offset = 0xD8;
+		break;
+	}
+	DWORD function_entry = Versions[version]->functions.CHOPPER_RENDER_UNK1;
+	Instructions instructions(DWORD(function_entry + function_offset));
+	instructions.nop(6); // nops out comparison
+	instructions << BYTE(0xEB); //Changes jnz to jmp
+	size_t is_size = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size);
+	printf("[Max Health Patch] Generated a total of %d bytes\n", is_size);
 	master->instructions.push_back(instructions);
 }
 

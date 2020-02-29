@@ -23,6 +23,7 @@ struct FunctionType
 	DWORD HANGAR_MAIN;
 	DWORD UNK_RENDER_1;
 	DWORD RENDER_SIMS;
+	DWORD CHOPPER_RENDER_UNK1;
 };
 
 struct DataType
@@ -58,6 +59,7 @@ const struct VersionClassics : GameVersion
 		functions.HANGAR_MAIN = 0x43ECC0;
 		functions.UNK_RENDER_1 = 0x44C550;
 		functions.RENDER_SIMS = 0x4D68E0;
+		functions.CHOPPER_RENDER_UNK1 = 0x48DD80;
 
 		functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
 		functions.VERSIONS = 0x45F210;			//Contains versions for everything (game, glide, os, etc)
@@ -88,6 +90,7 @@ const struct Version11SC : GameVersion
 		functions.HANGAR_MAIN = 0x43BFA0;
 		functions.UNK_RENDER_1 = 0x449850;
 		functions.RENDER_SIMS = 0x4CFB30;
+		functions.CHOPPER_RENDER_UNK1 = 0x489800;
 
 		functions.VERSIONS = 0x45C0F0;
 		
@@ -112,6 +115,7 @@ const struct Version11SCFR : GameVersion
 		functions.HANGAR_MAIN = 0x43ACF0;
 		functions.UNK_RENDER_1 = 0x4485A0;
 		functions.RENDER_SIMS = 0x4D18B0;
+		functions.CHOPPER_RENDER_UNK1 = 0x488800;
 		
 		data.RES_TYPE = 0x4F9778;		
 	}
@@ -134,6 +138,7 @@ const struct Version102Patch : GameVersion
 		functions.HANGAR_MAIN = 0x43C4F0;
 		functions.UNK_RENDER_1 = 0x449DA0;
 		functions.RENDER_SIMS = 0x4D44B0;
+		functions.CHOPPER_RENDER_UNK1 = 0x48BD10;
 
 		functions.BITDEPTH_CHECK = 0x45C000; //+0x170
 
@@ -157,7 +162,8 @@ const struct VersionOriginal : GameVersion
 		functions.DDRAW_PALETTE = 0x41CA10;
 		functions.HANGAR_MAIN = 0x43BD40;
 		functions.UNK_RENDER_1 = 0x4496E0;
-		functions.RENDER_SIMS = 0x4CF2C0;		
+		functions.RENDER_SIMS = 0x4CF2C0;
+		functions.CHOPPER_RENDER_UNK1 = 0x489480;
 
 		data.RES_TYPE = 0x4F8798;
 	}
