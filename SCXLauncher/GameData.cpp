@@ -478,11 +478,13 @@ void GameData::PatchChopperDamageFunction(DetourMaster* master, GameVersions ver
 	*/
 
 	DWORD function_offset;
+	unsigned int nop_count = 6; //different encoding on comparison
 	switch (version)
 	{
 	case V11SC:
 	case V11SC_FR:
 		function_offset = 0xDB;
+		nop_count = 3;
 		break;
 	case VCLASSICS:
 	case V102_PATCH:
@@ -494,7 +496,7 @@ void GameData::PatchChopperDamageFunction(DetourMaster* master, GameVersions ver
 	}
 	DWORD function_entry = Versions[version]->functions.CHOPPER_RENDER_UNK1;
 	Instructions instructions(DWORD(function_entry + function_offset));
-	instructions.nop(6); // nops out comparison
+	instructions.nop(nop_count); // nops out comparison
 	instructions << BYTE(0xEB); //Changes jnz to jmp
 	size_t is_size = instructions.GetInstructions().size();
 	master->SetLastDetourSize(is_size);
