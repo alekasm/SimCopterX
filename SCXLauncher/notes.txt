@@ -58,5 +58,6 @@ chopper values initiated in function: sub_48C330
 chopper with full health doesnt reach this
 
 
+--------------------------
 
 

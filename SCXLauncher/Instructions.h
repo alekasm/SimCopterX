@@ -104,6 +104,15 @@ public:
 		operator<<(encoding);
 	}
 
+	void jz(DWORD address)
+	{
+		DWORD next_address = current_location + 0x6;
+		DWORD encoding = address - next_address;
+		operator<<(BYTE(0x0F));
+		operator<<(BYTE(0x84));
+		operator<<(encoding);
+	}
+
 	void jge(DWORD address)
 	{
 		DWORD next_address = current_location + 0x6;

@@ -24,4 +24,5 @@ private:
 	static void CreateMapCheatFunction(DetourMaster*, GameVersions);
 	static void RenderSimsFunction(DetourMaster*, GameVersions);
 	static void PatchChopperDamageFunction(DetourMaster*, GameVersions);
+	static void PatchEmergencyVehicleCrashOnRamp(DetourMaster*, GameVersions);
 };

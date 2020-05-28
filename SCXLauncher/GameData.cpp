@@ -16,6 +16,7 @@ std::vector<Instructions> GameData::GenerateData(PEINFO info, GameVersions versi
 	CreateMapCheatFunction(master, version);
 	RenderSimsFunction(master, version);
 	PatchChopperDamageFunction(master, version);
+	PatchEmergencyVehicleCrashOnRamp(master, version);
 	std::vector<Instructions> ret_ins(master->instructions);	
 	delete master;
 	return ret_ins;
@@ -356,6 +357,45 @@ void GameData::RenderSimsFunction(DetourMaster* master, GameVersions version)
 	size_t is_size = instructions.GetInstructions().size();
 	master->SetLastDetourSize(is_size);
 	printf("[Render Sims Fix] Generated a total of %d bytes\n", is_size);
+	master->instructions.push_back(instructions);
+}
+ 
+void GameData::PatchEmergencyVehicleCrashOnRamp(DetourMaster* master, GameVersions version)
+{
+	DWORD function_entry = Versions[version]->functions.EMERGENCY_VEHICLE_RENDER_UNK1;
+	DWORD detour_entry = function_entry + 0x43;
+	DWORD detour_return = function_entry + 0x4E;
+
+	//Returning false will inherintly set the station to having a vehicle available 
+	//and set the vehicle state to 0 (at station)
+	DWORD function_return_false = function_entry + 0x1F8;
+	if (version == GameVersions::ORIGINAL)
+	{
+		function_return_false = function_entry + 0x1F7;
+	}
+
+	Instructions instructions(detour_entry);
+	instructions.jmp(master->GetNextDetour());
+
+	//Preserve the original content
+	instructions << ByteArray{ 0x8D, 0x47, 0x05 }; //lea eax, [edi+0x5]
+	instructions << ByteArray{ 0x85, 0xC0 }; // test eax, eax
+	instructions.jz(function_return_false);
+
+	//Check if emergency vehicle is not supposed to render
+	instructions << ByteArray{ 0x33, 0xF6 }; //xor esi, esi
+	instructions << ByteArray{ 0x66, 0x8B, 0x77, 0x08 }; //mov si, [edi+0x8]
+	instructions << ByteArray{ 0x85, 0xF6 }; //test esi, esi
+	instructions.jnz(detour_return); //passed the "ramp crash" check
+
+	//The x/y coordinates are stored as single bytes because maps are 128x128
+	//edx+0xC = x, edx+0xD = y, esi at this point will be 0, overwrite both coordinates
+	//at the same time by moving a WORD.
+	instructions << ByteArray{ 0x89, 0x72, 0x0C }; //mov [edx+0xC], esi
+	instructions.jmp(function_return_false);
+	size_t is_size = instructions.GetInstructions().size();
+	master->SetLastDetourSize(is_size);
+	printf("[Ramp Crash Fix] Generated a total of %d bytes\n", is_size);
 	master->instructions.push_back(instructions);
 }
 
