@@ -433,6 +433,23 @@ bool SCXLoader::StartSCX(SCXParameters params)
 	return true;
 }
 
+bool SCXLoader::FixMaxisHelpViewer()
+{
+	std::string webste32 = std::string(VideoGameInstallDirectory) + "/setup/webste32/";
+	std::vector<std::string> webste_files = { "regsvr32.exe", "webster.ocx" };
+	for (std::string file : webste_files)
+	{
+		if (!PathFileExistsA(std::string(webste32 + file).c_str()))
+		{
+			return false;
+		}
+	}
+	std::string executable = webste32 + "regsvr32.exe";
+	std::string parameters = "/s /i " + webste32 + "webster.ocx";
+	HINSTANCE hInstance = ShellExecuteA(NULL, "open", executable.c_str(), parameters.c_str(), NULL, SW_HIDE);
+	return reinterpret_cast<int>(hInstance) > 32;
+}
+
 bool SCXLoader::LoadFiles()
 {
 	char* buf = nullptr;
@@ -622,6 +639,9 @@ MessageValue VerifyInstallation(GameVersions version)
 			return copy_result;
 		}		
 	}
+
+	SCXLoader::FixMaxisHelpViewer();
+
 	return MessageValue(TRUE);
 }
 
