@@ -152,6 +152,30 @@ const struct Version102Patch : GameVersion
 	}
 } version_102patch;
 
+const struct Version10JP : GameVersion
+{
+	Version10JP()
+	{
+		functions.GLOBAL_INIT = 0x401800;
+		functions.MAIN_LOOP = 0x435100;
+		functions.DS_SLEEP = 0x61C598;
+		functions.CD_CHECK = 0x43F9C0;
+		functions.CHOPPER_UI = 0x419EE0;
+		functions.FLAP_UI = 0x41A270;
+		functions.CHOPPER_CLIP = 0x41AB30;
+		functions.RES_LOOKUP = 0x4070A0;
+		functions.SCREEN_CLIP = 0x437080;
+		functions.DDRAW_PALETTE = 0x418E90;
+		functions.HANGAR_MAIN = 0x40DB40;
+		functions.UNK_RENDER_1 = 0x453250;
+		functions.RENDER_SIMS = 0x4D0310;
+		functions.CHOPPER_RENDER_UNK1 = 0x490680;
+		functions.EMERGENCY_VEHICLE_RENDER_UNK1 = 0x497690;
+
+		data.RES_TYPE = 0x4F9CD0;
+	}
+} version_10jp;
+
 const struct VersionOriginal : GameVersion
 {
 	VersionOriginal()
@@ -178,12 +202,13 @@ const struct VersionOriginal : GameVersion
 
 
 //The order of this matters
-enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL };
-static const GameVersion* const Versions[5] =
+enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL, V10_JP };
+static const GameVersion* const Versions[6] =
 {
 	&version_classics,
 	&version_11sc,
 	&version_102patch,
 	&version_11scfr,
-	&version_original
+	&version_original,
+	&version_10jp
 };

@@ -33,6 +33,7 @@ void GameData::CreateDDrawPaletteFunction(DetourMaster *master, GameVersions ver
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
 	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		rewrite_start = function_entry + 0x32;
 		break;
 	case GameVersions::V102_PATCH:
@@ -61,6 +62,7 @@ void GameData::CreateScreenClipFunction(DetourMaster *master, GameVersions versi
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
 	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		rewrite_start = function_entry + 0x151;
 		break;
 	case GameVersions::V102_PATCH:
@@ -118,6 +120,7 @@ void GameData::CreateFlapUIFunction(DetourMaster *master, GameVersions version)
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
 	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		rewrite_start = function_entry + 0xC;
 		break;
 	case GameVersions::V102_PATCH:
@@ -148,7 +151,15 @@ void GameData::CreateMapCheatFunction(DetourMaster* master, GameVersions version
 	DWORD res_dword = Versions[version]->data.RES_TYPE;
 	DWORD function_entry = Versions[version]->functions.UNK_RENDER_1;
 
-	Instructions instructions(DWORD(function_entry + 0x1FA));
+	DWORD rewrite_start = function_entry + 0x1FA;
+	DWORD detour_return = function_entry + 0x204;
+	if (version == GameVersions::V10_JP)
+	{
+		rewrite_start = function_entry + 0x202;
+		detour_return = function_entry + 0x20C;
+	}
+
+	Instructions instructions(rewrite_start);
 	instructions.jmp(master->GetNextDetour());
 	instructions.cmp(res_dword, 0x1);
 	instructions << ByteArray{ 0x75, 0x0F }; //jnz
@@ -156,12 +167,12 @@ void GameData::CreateMapCheatFunction(DetourMaster* master, GameVersions version
 	instructions << DWORD(0x144);
 	instructions << BYTE(0x68);
 	instructions << DWORD(0x200);
-	instructions.jmp(DWORD(function_entry + 0x204), FALSE);
+	instructions.jmp(detour_return, FALSE);
 	instructions << ByteArray{ 0x8B, 0x8E, 0xD4, 0x00, 0x00, 0x00 }; // mov ecx, [esi+0xD4] //Screen height
 	instructions << ByteArray{ 0x83, 0xE9, 0x68 }; //sub ecx, 102. Map =  124 x 98, create 4 px buffer	
 	instructions << BYTE(0x51); //push ecx
 	instructions << ByteArray{ 0x6A, 0x04 }; //push 0x2
-	instructions.jmp(DWORD(function_entry + 0x204), FALSE);
+	instructions.jmp(detour_return, FALSE);
 
 	size_t is_size = instructions.GetInstructions().size();
 	master->SetLastDetourSize(is_size);
@@ -183,6 +194,7 @@ void GameData::CreateChopperUIFunction(DetourMaster *master, GameVersions versio
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
 	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		detour_return = function_entry + 0xF2;
 		break;
 	case GameVersions::V102_PATCH:
@@ -305,16 +317,26 @@ void GameData::CreateSleepFunction(DetourMaster *master, GameVersions version)
 	DWORD dsfunction_sleep = Versions[version]->functions.DS_SLEEP;
 	DWORD sleep_param = master->info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
 
-	Instructions instructions(DWORD(function_entry + 0x11E));
-	instructions.jmp(master->GetNextDetour());                      //jmp <detour> 
-	instructions << ByteArray{ 0xFF, 0xD6 };						//call esi
-	instructions << BYTE(0x50);										//push eax
-	instructions.push_rm32(sleep_param);                            //push param millis
-	instructions.call_rm32(dsfunction_sleep);						//call Sleep
-	instructions << BYTE(0x58);										//pop eax
-	instructions << ByteArray{ 0x85, 0xC0 };						//test eax, eax
-	instructions.jnz(DWORD(function_entry + 0x124));				//jnz <function>
-	instructions.jmp(DWORD(function_entry + 0x148));				//jmp <function>
+	DWORD rewrite_start = function_entry + 0x11E;
+	DWORD jnz_detour_return = function_entry + 0x124;
+	DWORD jmp_detour_return = function_entry + 0x148;
+	if (version == GameVersions::V10_JP)
+	{
+		rewrite_start = function_entry + 0x143;
+		jnz_detour_return = function_entry + 0x149;
+		jmp_detour_return = function_entry + 0x16D;
+	}
+
+	Instructions instructions(rewrite_start);
+	instructions.jmp(master->GetNextDetour());  //jmp <detour> 
+	instructions << ByteArray{ 0xFF, 0xD6 };		//call esi
+	instructions << BYTE(0x50);									//push eax
+	instructions.push_rm32(sleep_param);        //push param millis
+	instructions.call_rm32(dsfunction_sleep);		//call Sleep
+	instructions << BYTE(0x58);									//pop eax
+	instructions << ByteArray{ 0x85, 0xC0 };		//test eax, eax
+	instructions.jnz(jnz_detour_return);				//jnz <function>
+	instructions.jmp(jmp_detour_return);				//jmp <function>
 
 	size_t is_size = instructions.GetInstructions().size();
 	master->SetLastDetourSize(is_size);
@@ -368,10 +390,16 @@ void GameData::PatchEmergencyVehicleCrashOnRamp(DetourMaster* master, GameVersio
 
 	//Returning false will inherintly set the station to having a vehicle available 
 	//and set the vehicle state to 0 (at station)
-	DWORD function_return_false = function_entry + 0x1F8;
-	if (version == GameVersions::ORIGINAL)
+	DWORD function_return_false;
+	switch (version)
 	{
+	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		function_return_false = function_entry + 0x1F7;
+		break;
+	default:
+		function_return_false = function_entry + 0x1F8;
+		break;
 	}
 
 	Instructions instructions(detour_entry);
@@ -417,6 +445,7 @@ void GameData::CreateHangarMainFunction(DetourMaster* master, GameVersions versi
 		detour_return_2 = function_entry + 0x1E0;
 		break;	
 	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		detour_entry_2 = function_entry + 0x1DB;
 		detour_return_2 = function_entry + 0x1E6;		
 		break;
@@ -429,7 +458,8 @@ void GameData::CreateHangarMainFunction(DetourMaster* master, GameVersions versi
 	case GameVersions::V11SC:
 	case GameVersions::V11SC_FR:
 	case GameVersions::V102_PATCH:
-	case GameVersions::ORIGINAL:	
+	case GameVersions::ORIGINAL:
+	case GameVersions::V10_JP:
 		viewport_x_offset = 0x14A;
 		offset_bg_ptr = 0x13E;
 		break;
@@ -531,6 +561,7 @@ void GameData::PatchChopperDamageFunction(DetourMaster* master, GameVersions ver
 		function_offset = 0xD4;
 		break;
 	case ORIGINAL:
+	case V10_JP:
 		function_offset = 0xD8;
 		break;
 	}

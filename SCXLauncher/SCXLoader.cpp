@@ -23,17 +23,19 @@ namespace
 		{"90db54003aa9ba881543c9d2cd0dbfbf", GameVersions::V11SC},
 		{"d2f5c5eca71075696964d0f91b1163bf", GameVersions::V102_PATCH},
 		{"b296b26e922bc43705b49f7414d7218f", GameVersions::V11SC_FR},
-		{"17d5eba3e604229c4b87a68f20520b56", GameVersions::ORIGINAL}
+		{"17d5eba3e604229c4b87a68f20520b56", GameVersions::ORIGINAL},
+		{"1ea2ece4cf9b4e0ed3da217a31426795", GameVersions::V10_JP}
 	};
 
 	//The advertisted dates in techtips is wrong
 	std::map<GameVersions, std::string> version_description = 
 	{
-		{GameVersions::VCLASSICS, "Classics Version - February 1998"},
-		{GameVersions::V11SC, "Version 1.1SC - 7 November 1996"}, 
-		{GameVersions::ORIGINAL, "Version 1.0 - 7 November 1996"},
-		{GameVersions::V102_PATCH, "Version 1.02 Patch - 26 February 1997"},
-		{GameVersions::V11SC_FR, "Version 1.1SC (FR) - 7 November 1996"}
+		{GameVersions::VCLASSICS, "Classics Version (1.0.1.4) - 1 April 1997"},
+		{GameVersions::V11SC, "Version 1.1SC (1.0.1.0) - 8 December 1996"}, 
+		{GameVersions::ORIGINAL, "Version 1.0 (1.0.0.0) - 14 November 1996"},
+		{GameVersions::V102_PATCH, "Version 1.02 Patch (1.0.1.3) - 26 February 1997"},
+		{GameVersions::V11SC_FR, "Version 1.1SC (EU) (1.0.1.0) - 9 December 1996"},
+		{GameVersions::V10_JP, "Version 1.0 (Japanese) (1.0.0.0) - 7 December 1996"}
 	};
 
 	std::string PatchDirectory;
@@ -272,9 +274,9 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 
 	std::string message = "";
 	if (using_backup_copy)
-		message += "Used Backup: " + version_description[game_version] + "\n";
+		message += "Used Backup:\n" + version_description[game_version] + "\n\n";
 	else
-		message += "Detected Version: " + version_description[game_version] + "\n";
+		message += "Detected Version:\n" + version_description[game_version] + "\n\n";
 
 	message += "Patch location: \n" + game_location + "\n\n";
 	if (params.verify_install)
@@ -607,6 +609,7 @@ MessageValue VerifyInstallation(GameVersions version)
 	std::map<GameVersions, std::vector<std::string>> dll_map = 
 	{
 		{ GameVersions::ORIGINAL,	{"smackw32.dll"}},
+		{ GameVersions::V10_JP,	  {"smackw32.dll"}},
 		{ GameVersions::V11SC,		{"smackw32.dll"}},
 		{ GameVersions::V11SC_FR,	{"smackw32.dll"}},
 		{ GameVersions::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
