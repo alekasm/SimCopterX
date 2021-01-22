@@ -35,7 +35,7 @@ public:
 	static bool StartSCX(SCXParameters);	
 	static bool GetValidInstallation();
 	static bool FixMaxisHelpViewer();
-	static const unsigned int SCX_VERSION = 14;	
+	static const unsigned int SCX_VERSION = 15;	
 private:
 	static bool GetFileCompatability(std::string);	
 };
