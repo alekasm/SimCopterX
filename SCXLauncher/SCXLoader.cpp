@@ -34,7 +34,7 @@ namespace
 		{GameVersions::V11SC, "Version 1.1SC (1.0.1.0) - 8 December 1996"}, 
 		{GameVersions::ORIGINAL, "Version 1.0 (1.0.0.0) - 14 November 1996"},
 		{GameVersions::V102_PATCH, "Version 1.02 Patch (1.0.1.3) - 26 February 1997"},
-		{GameVersions::V11SC_FR, "Version 1.1SC (EU) (1.0.1.0) - 9 December 1996"},
+		{GameVersions::V11SC_FR, "Version 1.1SC (French) (1.0.1.0) - 9 December 1996"},
 		{GameVersions::V10_JP, "Version 1.0 (Japanese) (1.0.0.0) - 7 December 1996"}
 	};
 
