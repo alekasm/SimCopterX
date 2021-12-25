@@ -20,23 +20,23 @@
 
 struct SCXParameters
 {
-	bool verify_install;
-	unsigned int sleep_time;
-	unsigned int resolution_mode;
-	bool fullscreen;
+  bool verify_install;
+  unsigned int sleep_time;
+  unsigned int resolution_mode;
+  bool fullscreen;
 };
 
 class SCXLoader
 {
 public:
-	static bool LoadFiles();	
-	static int GetPatchedSCXVersion();
-	static bool CreatePatchedGame(std::string, SCXParameters);
-	static bool StartSCX(SCXParameters);	
-	static bool GetValidInstallation();
-	static bool FixMaxisHelpViewer();
-	static const unsigned int SCX_VERSION = 15;	
+  static bool LoadFiles();
+  static int GetPatchedSCXVersion();
+  static bool CreatePatchedGame(std::string, SCXParameters);
+  static bool StartSCX(SCXParameters);
+  static bool GetValidInstallation();
+  static bool FixMaxisHelpViewer();
+  static constexpr unsigned int SCX_VERSION = 15;
 private:
-	static bool GetFileCompatability(std::string);	
+  static bool GetFileCompatability(std::string);
 };
 
