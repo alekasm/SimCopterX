@@ -58,7 +58,7 @@ struct Settings
 
     if (Registry::GetValue(rkey, re_gameversion))
     {
-      info.PatcherVersion = (GameVersions)std::stoi(re_gameversion.Value->wstring);
+      info.PatchedGameVersion = (GameVersions)std::stoi(re_gameversion.Value->wstring);
     }
     return info;
   }

@@ -11,6 +11,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 void initialize(HINSTANCE hInstance);
 void enable_settings(bool);
 void refresh();
+void update_settings();
 SCXParameters GetParameters();
 
 namespace
@@ -85,8 +86,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   initialize(hInstance);
   PatchInfo info = Settings::GetPatchInfo();
 
-
   SCXLoader::LoadSettings();
+  update_settings();
+
+  MSG msg;
+  while (!end_process && GetMessage(&msg, NULL, 0, 0))
+  {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+  return 0;
+}
+
+void destroy()
+{
+  if (settingsHwnd != NULL)
+    DestroyWindow(settingsHwnd);
+}
+
+void update_settings()
+{
   if (SCXLoader::GetValidInstallation())
   { //Patched and installed
     Button_Enable(StartButton, TRUE);
@@ -105,21 +124,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     Button_Enable(InstallButton, FALSE);
     enable_settings(false);
   }
-
-  MSG msg;
-  while (!end_process && GetMessage(&msg, NULL, 0, 0))
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-  return 0;
 }
 
-void destroy()
-{
-  if (settingsHwnd != NULL)
-    DestroyWindow(settingsHwnd);
-}
 void refresh()
 {
   UpdateWindow(wsRadioButton);
@@ -316,8 +322,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
           GetOpenFileName(&ofn);
           SCXParameters params = GetParameters();
           bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
-          Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);
-          Button_Enable(PatchButton, TRUE);
+          update_settings();
+          //Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);
+          //Button_Enable(PatchButton, TRUE);
+        }
+        else if ((HWND)lParam == InstallButton)
+        {
+          SCXLoader::InstallGame();
+          update_settings();
         }
         else if ((HWND)lParam == StartButton)
         {

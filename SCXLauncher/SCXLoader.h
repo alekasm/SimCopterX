@@ -21,7 +21,6 @@
 
 struct SCXParameters
 {
-  bool verify_install;
   unsigned int sleep_time;
   unsigned int resolution_mode;
   bool fullscreen;

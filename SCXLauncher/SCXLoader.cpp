@@ -233,7 +233,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
     return false;
   }
 
-  MessageValue hash_check = CreateMD5Hash(patch_info.PatchedGameLocation);
+  MessageValue hash_check = CreateMD5Hash(exe_path.wstring());
   if (!hash_check.Value)
   {
     ShowMessage(PATCH_NAME + " Error", hash_check.Message);
@@ -241,7 +241,7 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
   }
 
   patch_info.PatchedGameHash = std::wstring(hash_check.Message.begin(), hash_check.Message.end());
-  patch_info.PatchedGameLocation = std::wstring(exe_path.string().begin(), exe_path.string().end());
+  patch_info.PatchedGameLocation = exe_path.wstring();
   patch_info.PatcherVersion = SCX_VERSION;
   patch_info.PatchedGameVersion = version;
   bool reg_result = Settings::SetPatchInfo(patch_info);
@@ -254,10 +254,10 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 
   message += "Patch location: \n" + game_location + "\n\n";
   if (reg_result)
-    message += "Patch was successful; if you move or modify this file you cannot install it.\n";
+    message += "Patch was successful!\nIf you move or modify this file, then you cannot install.\n";
   else
-    message += "Patch was successful, but the patch info couldn't be stored to your registry.\n"
-               "You will not be able to install the game\n";
+    message += "Patch was successful!\nThe patch info couldn't be stored to your registry.\n"
+               "You will not be able to install the game.\n";
 
   ShowMessage(PATCH_NAME + " Patch Successful!", message);
   return true;
@@ -435,15 +435,17 @@ void SCXLoader::LoadSettings()
 
 MessageValue CreateMD5Hash(std::wstring filename_wstring)
 {
-  LPCWSTR filename = filename_wstring.c_str();
+  //LPCWSTR filename = filename_wstring.c_str();
 
   DWORD cbHash = 16;
   HCRYPTHASH hHash = 0;
   HCRYPTPROV hProv = 0;
   BYTE rgbHash[16];
   CHAR rgbDigits[] = "0123456789abcdef";
-  HANDLE hFile = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
+  HANDLE hFile = CreateFileW(filename_wstring.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
     OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+  int v = GetLastError();
+  printf("%d\n", v);
 
   if (hFile == INVALID_HANDLE_VALUE)
   {
@@ -494,7 +496,15 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
 {
 
   std::filesystem::path game_dir = std::filesystem::path(patch_info.PatchedGameLocation);
-  game_dir = game_dir.root_path();
+  try
+  {
+    game_dir = game_dir.parent_path();
+    game_dir = std::filesystem::canonical(game_dir);
+  }
+  catch (const std::exception& e)
+  {
+    return MessageValue(FALSE, std::string("Failed to copy:\n") + e.what());
+  }
 
   std::map<std::string, std::string> dll_source =
   {
@@ -516,7 +526,18 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
   for (std::string dll : dll_map[version])
   {
     std::filesystem::path dll_path = install_dir;
-    dll_path.append(dll_source[dll] + dll);
+    std::filesystem::path dll_dest = game_dir;
+    try
+    {      
+      dll_path.append(dll_source[dll] + dll);
+      dll_dest.append(dll);
+      dll_path = std::filesystem::canonical(dll_path);
+    }
+    catch (const std::exception& e)
+    {
+      return MessageValue(FALSE, std::string("Failed to copy:\n") + e.what());
+    }
+
 
     if (!PathFileExistsA(dll_path.string().c_str()))
     {
@@ -528,7 +549,7 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
       return MessageValue(FALSE, message);
     }
 
-    MessageValue copy_result = CopyFileSafe(dll_path.string(), game_dir.string());
+    MessageValue copy_result = CopyFileSafe(dll_path.string(), dll_dest.string());
     if (!copy_result.Value)
     {
       return copy_result;
@@ -559,9 +580,10 @@ MessageValue CopyFileSafe(std::string source, std::string destination)
 
   if (!CopyFileA(source.c_str(), destination.c_str(), FALSE))
   {
-    std::string message = "Failed to copy:\n" + source + "\n\n";
-    message += "Destination:\n" + destination + "\n\n";
-    return MessageValue(FALSE, message);
+    char buffer[512];
+    snprintf(buffer, sizeof(buffer), "Failed to copy:\n%s\n\nDestination:\n%s\n\nError Code: %d\n\n",
+      source.c_str(), destination.c_str(), GetLastError());
+    return MessageValue(FALSE, std::string(buffer));
   }
   OutputDebugString(std::string("Copied " + source + " to: " + destination + "\n").c_str());
   return MessageValue(TRUE);
