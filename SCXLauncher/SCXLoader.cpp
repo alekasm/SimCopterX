@@ -1,20 +1,18 @@
 #include "SCXLoader.h"
 #include "Settings.h"
+#include <filesystem>
 
 std::string LastErrorString();
 MessageValue CreateMD5Hash(std::string);
-std::vector<std::string> split_string(char delim, std::string split_string);
-MessageValue VerifyOriginalGame(std::string source);
-std::string FormatDirectoryLocation(std::string full_exe_location);
-MessageValue VerifyInstallationDirectory(std::string game_location);
-MessageValue VerifyInstallation(GameVersions version);
+MessageValue VerifyOriginalGame(std::string, GameVersions&);
+MessageValue VerifyInstallationDirectory(std::string, std::filesystem::path&);
+MessageValue VerifyInstallation(GameVersions version, std::filesystem::path);
 MessageValue CopyFileSafe(std::string source, std::string destination);
-
 
 namespace
 {
-  const std::string PATCH_FILE = "SCXPatch.dat";
   const std::string GAME_FILE = "SimCopter.exe";
+  const std::string BACKUP_FILE = "SimCopter(Backup).exe";
   const std::string PATCH_NAME = "SimCopterX";
   const std::string GAME_NAME = "SimCopter";
 
@@ -38,23 +36,18 @@ namespace
     {GameVersions::V11SC_FR, "Version 1.1SC (French) (1.0.1.0) - 9 December 1996"},
     {GameVersions::V10_JP, "Version 1.0 (Japanese) (1.0.0.0) - 7 December 1996"}
   };
-
-  std::string PatchDirectory;  
-  std::string VideoGameInstallDirectory = "";
   FileVersion fileVersion;
-
-  //GameVersions game_version;
-  //std::string VideoGameLocation = "";
-  //std::string patched_hash;
-  //int patched_scxversion = -1;
-  //bool ValidInstallation = false; 
-  PatchInfo info;
- 
+  PatchInfo patch_info; 
 }
 
 bool SCXLoader::GetValidInstallation()
 {
-  return ValidInstallation;
+  return patch_info.PatchedGameIsInstalled;
+}
+
+int SCXLoader::GetPatchedSCXVersion()
+{
+  return patch_info.PatcherVersion;
 }
 
 bool SCXLoader::GetFileCompatability(std::string game_location)
@@ -75,17 +68,7 @@ bool SCXLoader::GetFileCompatability(std::string game_location)
   return std::string(lpData).find("256COLOR") != std::string::npos;
 }
 
-int SCXLoader::GetPatchedSCXVersion()
-{
-  return patched_scxversion;
-}
-
-std::string SCXDirectory(std::string sappend)
-{
-  return std::string(PatchDirectory).append(sappend);
-}
-
-MessageValue VerifyOriginalGame(std::string source)
+MessageValue VerifyOriginalGame(std::string source, GameVersions& version)
 {
   if (!PathFileExistsA(source.c_str()))
   {
@@ -127,35 +110,50 @@ MessageValue VerifyOriginalGame(std::string source)
     return MessageValue(FALSE, reason);
   }
 
-  game_version = it->second;
+  version = it->second;
   return MessageValue(TRUE, sfi_result);
 }
 
 bool CreatePatchFile()
 {
-  MessageValue hash_check = CreateMD5Hash(VideoGameLocation);
+  MessageValue hash_check = CreateMD5Hash(patch_info.PatchedGameLocation);
   if (!hash_check.Value)
   {
     ShowMessage(PATCH_NAME + " Error", hash_check.Message);
     return false;
   }
-  OutputDebugString(std::string("Created the hash reference: " + hash_check.Message + "\n").c_str());
-  patched_hash = hash_check.Message;
-  std::ofstream patch_stream(SCXDirectory(PATCH_FILE));
-  if (patch_stream.is_open())
+  patch_info.PatchedGameHash = std::wstring(hash_check.Message.begin(), hash_check.Message.end());
+  return Settings::SetPatchInfo(patch_info);
+}
+
+bool SCXLoader::InstallGame()
+{
+  if (patch_info.PatcherVersion < 1 || patch_info.PatchedGameLocation.empty())
   {
-    patch_stream << hash_check.Message << "," << patched_scxversion << ",";
-    patch_stream << VideoGameLocation << "," << static_cast<int>(game_version) << ",";
-    patch_stream << static_cast<int>(ValidInstallation);
-    patch_stream.close();
-    return true;
+    return false;
   }
-  return false;
+
+  MessageValue msg_verify;
+  std::filesystem::path install_dir;
+  if (!(msg_verify = VerifyInstallationDirectory(patch_info.PatchedGameLocation, install_dir)).Value)
+  {
+    ShowMessage(PATCH_NAME + " Installation", msg_verify.Message);
+    return false;
+  }
+
+  MessageValue msg_install;
+  if (!(msg_install = VerifyInstallation(patch_info.PatchedGameVersion, install_dir)).Value)
+  {
+    ShowMessage(PATCH_NAME + " Installation", msg_install.Message);
+    return false;
+  }
+
+  patch_info.PatchedGameIsInstalled = true;
+  return Settings::SetPatchInfo(patch_info);
 }
 
 bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters params)
 {
-  OutputDebugString(std::string("Attempting to patch game at " + game_location + "\n").c_str());
 
   if (game_location.empty()) //Means nothing was selected
     return false;
@@ -166,21 +164,30 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
   */
   bool using_backup_copy = false;
   MessageValue verifyCurrentValue;
+  GameVersions version;
 
-  std::string GameLocation = FormatDirectoryLocation(game_location);
+  std::filesystem::path exe_path;
+  std::filesystem::path backup_exe_path;
+  std::filesystem::path exe_parent_path;
 
-  if (!(verifyCurrentValue = VerifyOriginalGame(GameLocation)).Value)
+
+  exe_path = std::filesystem::path(game_location);
+  try
   {
-    if (!params.verify_install)
-    {
-      std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. Not ";
-      message_body += "attempting to use a backup copy since 'Verify Install' was not selected.\n\n";
-      message_body += verifyCurrentValue.Message;
-      ShowMessage(PATCH_NAME + " Error", message_body);
-      return false;
-    }
+    exe_path = std::filesystem::canonical(exe_path);
+    exe_parent_path = exe_path.parent_path();
+    backup_exe_path = exe_parent_path;
+    backup_exe_path.append(BACKUP_FILE);
+  }
+  catch (const std::exception& e)
+  {
+    printf("%s\n", e.what());
+    return false;
+  }
 
-    if (!VerifyOriginalGame(SCXDirectory("SimCopter.exe")).Value)
+  if (!(verifyCurrentValue = VerifyOriginalGame(exe_path.string(), version)).Value)
+  {
+    if (!VerifyOriginalGame(backup_exe_path.string(), version).Value)
     {
       std::string message_body = "The SimCopter game you selected isn't supported or is already modified/patched. " + PATCH_NAME + " ";
       message_body += "could not find an original backup. If this is an official version of the game, please submit the following ";
@@ -189,12 +196,17 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
       ShowMessage(PATCH_NAME + " Error", message_body);
       return false;
     }
-
+    MessageValue copy_result = CopyFileSafe(backup_exe_path.string(), exe_path.string());
+    if (!copy_result.Value)
+    {
+      ShowMessage(LastErrorString(), copy_result.Message);
+      return false;
+    }
     using_backup_copy = true;
   }
   else
   {
-    MessageValue copy_result = CopyFileSafe(GameLocation, SCXDirectory(GAME_FILE));
+    MessageValue copy_result = CopyFileSafe(exe_path.string(), backup_exe_path.string());
     if (!copy_result.Value)
     {
       ShowMessage(LastErrorString(), copy_result.Message);
@@ -202,90 +214,50 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
     }
   }
 
-  if (params.verify_install)
-  {
-    MessageValue msg_verify;
-    if (!(msg_verify = VerifyInstallationDirectory(GameLocation)).Value)
-    {
-      ShowMessage(PATCH_NAME + " Installation", msg_verify.Message);
-      return false;
-    }
-
-    VideoGameLocation = VideoGameInstallDirectory + "SimCopter/SimCopter.exe";
-
-    MessageValue msg_install;
-    if (!(msg_install = VerifyInstallation(game_version)).Value)
-    {
-      ShowMessage(PATCH_NAME + " Installation", msg_install.Message);
-      return false;
-    }
-
-    ValidInstallation = true;
-  }
-  else
-  {
-    VideoGameLocation = GameLocation;
-  }
-
-  MessageValue copy_result2 = CopyFileSafe(SCXDirectory("SimCopter.exe"), SCXDirectory("SimCopterX.exe"));
-  if (!copy_result2.Value)
-  {
-    ShowMessage(LastErrorString(), "Failed to create the intermediary " + PATCH_NAME + " patch game file.\n\n" + copy_result2.Message);
-    return false;
-  }
-
   PEINFO info;
-  if (!Patcher::CreateDetourSection(SCXDirectory("SimCopterX.exe").c_str(), &info))
+  if (!Patcher::CreateDetourSection(exe_path.string().c_str(), &info))
   {
     ShowMessage(PATCH_NAME + " Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
     return false;
   }
 
-  std::vector<Instructions> instructions = GameData::GenerateData(info, game_version);
+  std::vector<Instructions> instructions = GameData::GenerateData(info, version);
   DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
-  DWORD res_address = Versions[game_version]->data.RES_TYPE;
+  DWORD res_address = Versions[version]->data.RES_TYPE;
   instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
   instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
-  if (!Patcher::Patch(info, instructions, SCXDirectory("SimCopterX.exe")))
+  if (!Patcher::Patch(info, instructions, exe_path.string()))
   {
     ShowMessage(PATCH_NAME + " Patch Failed", "Failed to patch the game file.\n Make sure the game isn't running or opened in another application");
     return false;
   }
 
-  MessageValue copy_result3 = CopyFileSafe(SCXDirectory("SimCopterX.exe"), VideoGameLocation);
-  if (!copy_result3.Value)
+  MessageValue hash_check = CreateMD5Hash(patch_info.PatchedGameLocation);
+  if (!hash_check.Value)
   {
-    ShowMessage(LastErrorString(), "Failed to copy the intermediary " + PATCH_NAME + " patch game file to the source directory.\n\n" + copy_result3.Message);
+    ShowMessage(PATCH_NAME + " Error", hash_check.Message);
     return false;
   }
 
-  patched_scxversion = SCX_VERSION;
-
-  BOOL delete_result = DeleteFileA(SCXDirectory("SimCopterX.exe").c_str());
-  if (!delete_result)
-  {
-    OutputDebugString(std::string("Failed to delete intermediary " + PATCH_NAME + " game file. Still successful... Error: (" + std::to_string(GetLastError()) + ")").c_str());
-  }
-
-  if (params.verify_install && !CreatePatchFile())
-  {
-    ShowMessage(PATCH_NAME + " Error", "Failed to create the patch file which stores information about your specific patch.");
-    return false;
-  }
+  patch_info.PatchedGameHash = std::wstring(hash_check.Message.begin(), hash_check.Message.end());
+  patch_info.PatchedGameLocation = std::wstring(exe_path.string().begin(), exe_path.string().end());
+  patch_info.PatcherVersion = SCX_VERSION;
+  patch_info.PatchedGameVersion = version;
+  bool reg_result = Settings::SetPatchInfo(patch_info);
 
   std::string message = "";
   if (using_backup_copy)
-    message += "Used Backup:\n" + version_description[game_version] + "\n\n";
+    message += "Used Backup:\n" + version_description[version] + "\n\n";
   else
-    message += "Detected Version:\n" + version_description[game_version] + "\n\n";
+    message += "Detected Version:\n" + version_description[version] + "\n\n";
 
   message += "Patch location: \n" + game_location + "\n\n";
-  if (params.verify_install)
-    message += "If you modify or move this file, you will need to re-patch again.\n";
+  if (reg_result)
+    message += "Patch was successful; if you move or modify this file you cannot install it.\n";
   else
-    message += "You patched this game without 'Verify Install', so you can't launch using SCXLauncher\n";
-
+    message += "Patch was successful, but the patch info couldn't be stored to your registry.\n"
+               "You will not be able to install the game\n";
 
   ShowMessage(PATCH_NAME + " Patch Successful!", message);
   return true;
@@ -293,56 +265,46 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 
 void ClearPatchFile(std::string reason)
 {
-  ShowMessage(PATCH_NAME + " Error", reason);
-  VideoGameLocation = "";
-  patched_hash = -1;
-  patched_scxversion = -1;
-  ValidInstallation = false;
-  BOOL delete_result = DeleteFileA(SCXDirectory(PATCH_FILE).c_str());
-  if (!delete_result)
-  {
-    OutputDebugString("Failed to delete the patch file \n");
-  }
+  //ShowMessage(PATCH_NAME + " Error", reason);
+  patch_info = PatchInfo();
+  Settings::ClearPatchInfo();
 }
 
-MessageValue VerifyInstallationDirectory(std::string game_location)
+MessageValue VerifyInstallationDirectory(std::wstring game_location, std::filesystem::path& install_dir)
 {
-  //This is used for installing the game (if verify install is enabled)
-  std::vector<std::string> path = split_string('/', game_location);
-  VideoGameInstallDirectory = "";
-
-  for (size_t i = path.size() - 2; i > 0; i--) //i - 1 = game exe
+  std::filesystem::path exe_path;
+  std::filesystem::path root_path;
+  std::filesystem::path autorun_path;
+  try
   {
-    std::string path_check = "";
-    for (size_t j = 0; j < i + 1; j++)
-    {
-      path_check += path.at(j) + "/";
-    }
-    //The top-level directory should have autorun.inf
-    std::string auto_run = path_check + "autorun.inf";
-    OutputDebugString(std::string("Checking: " + auto_run + "\n").c_str());
-    if (PathFileExistsA(auto_run.c_str()))
-    {
-      VideoGameInstallDirectory = path_check;
-      OutputDebugString(std::string("Install: " + VideoGameInstallDirectory).append("\n").c_str());
-      return MessageValue(TRUE);
-    }
+    exe_path = std::filesystem::path(game_location);
+    root_path = exe_path.parent_path().parent_path();
+    root_path = std::filesystem::canonical(root_path);
+    autorun_path = root_path;
+    autorun_path.append("autorun.inf");
   }
-  return MessageValue(FALSE, "The game does not appear to be on a valid extracted CD, missing autorun.inf");
+  catch (const std::exception& e)
+  {
+    return MessageValue(FALSE, "The game does not appear to be on a valid extracted CD");
+    printf("%s\n", e.what());
+  }
+
+  OutputDebugString(std::string("Checking: " + autorun_path.string() + "\n").c_str());
+  if (!PathFileExistsA(autorun_path.string().c_str()))
+  {
+    return MessageValue(FALSE, "The game does not appear to be on a valid extracted CD, missing autorun.inf");
+  }
+  install_dir = root_path;
+  return MessageValue(TRUE);  
 }
 
-std::string FormatDirectoryLocation(std::string full_exe_location)
-{
-  std::string format_location(full_exe_location);
-  std::replace(format_location.begin(), format_location.end(), '\\', '/');
-  return format_location;
-}
 
 bool VerifyPatchedGame()
 {
-  if (!PathFileExistsA(VideoGameLocation.c_str()))
+  if (!PathFileExistsW(info.PatchedGameLocation.c_str()))
   {
-    ClearPatchFile(std::string("The game no longer exists where we patched it:\n" + VideoGameLocation + "\nPlease try repatching.").c_str());
+    //ClearPatchFile(std::string("The game no longer exists where we patched it:\n" + VideoGameLocation + "\nPlease try repatching.").c_str());
+    ClearPatchFile(std::string("").c_str());
     return false;
   }
 
@@ -456,77 +418,16 @@ bool SCXLoader::FixMaxisHelpViewer()
 
 bool SCXLoader::LoadFiles()
 {
-  char* buf = nullptr;
-  size_t sz = 0;
-  if (_dupenv_s(&buf, &sz, "ProgramFiles") > 0 || buf == nullptr)
+  info = Settings::GetPatchInfo();
+  if (!VerifyPatchedGame())
   {
-    return false;
+    OutputDebugString("Failed to verify patched game files \n");
   }
-
-  PatchDirectory = std::string(buf).append("\\" + PATCH_NAME);
-  if (!PathFileExistsA(PatchDirectory.c_str()))
-  {
-    if (!CreateDirectoryA(PatchDirectory.c_str(), NULL))
-    {
-      //printf("Failed to create directory: %d", GetLastError());
-      return false;
-    }
-  }
-  PatchDirectory.append("\\");
-  OutputDebugString(std::string("Directory: ").append(std::string(PatchDirectory)).append("\n").c_str());
-
-  if (PathFileExistsA(SCXDirectory(PATCH_FILE).c_str()))
-  {
-    //Reads and verifes that the patchfile is in the correct format
-    char szBuff[128];
-    bool valid_patchfile = true;
-    std::ifstream fin(SCXDirectory(PATCH_FILE));
-    if (fin.good())
-    {
-      fin.getline(szBuff, 128);
-      fin.close();
-      std::vector<std::string> props = split_string(',', std::string(szBuff));
-      if (props.size() == 5)
-      {
-        patched_hash = props.at(0);
-        patched_scxversion = std::atoi(props.at(1).c_str());
-        VideoGameLocation = props.at(2);
-        game_version = static_cast<GameVersions>(std::atoi(props.at(3).c_str()));
-        ValidInstallation = std::atoi(props.at(4).c_str());
-        OutputDebugString(std::string("Game is patched at: " + VideoGameLocation + "\n").c_str());
-        OutputDebugString(std::string("Game version enum: " + std::to_string(static_cast<int>(game_version)) + "\n").c_str());
-      }
-      else
-      {
-        valid_patchfile = false;
-        ClearPatchFile("The patch file does not appear to be valid, please repatch the game");
-      }
-    }
-
-    //Verifies that the actual contents of the file match what we have
-    if (valid_patchfile)
-    {
-      if (!VerifyPatchedGame())
-      {
-        OutputDebugString("Failed to verify patched game files \n");
-      }
-
-    }
-  }
-  else
-  {
-    OutputDebugString("There currently does not exist a patch file \n");
-  }
-
-
-  OutputDebugString("Succesfully finished loading files \n");
   return true;
 }
 
-
-MessageValue CreateMD5Hash(std::string filename_string)
+MessageValue CreateMD5Hash(std::wstring filename_wstring)
 {
-  std::wstring filename_wstring = std::wstring(filename_string.begin(), filename_string.end());
   LPCWSTR filename = filename_wstring.c_str();
 
   DWORD cbHash = 16;
@@ -582,24 +483,11 @@ MessageValue CreateMD5Hash(std::string filename_string)
   }
 }
 
-MessageValue VerifyInstallation(GameVersions version)
+MessageValue VerifyInstallation(GameVersions version, std::filesystem::path install_dir)
 {
 
-  //Yeah all of this is inefficient but who cares, you patch once and this is
-  //clean/easy to understand
-
-  std::string SimCopterGameLocationDirectory(VideoGameLocation);
-  auto it = SimCopterGameLocationDirectory.find("SimCopter.exe");
-  if (it == std::string::npos)
-  {	//If this happens... YIKES
-    return MessageValue(FALSE, "Could not find 'SimCopter.exe' in directory location\n");
-  }
-  OutputDebugString(std::string(SimCopterGameLocationDirectory + "\n").c_str());
-  OutputDebugString(std::string(std::to_string(it) + "\n").c_str());
-  SimCopterGameLocationDirectory.erase(it, SimCopterGameLocationDirectory.size() - 1);
-
-  OutputDebugString(std::string(SimCopterGameLocationDirectory + "\n").c_str());
-  OutputDebugString(std::string(VideoGameLocation + "\n").c_str());
+  std::filesystem::path game_dir = std::filesystem::path(patch_info.PatchedGameLocation);
+  game_dir = game_dir.root_path();
 
   std::map<std::string, std::string> dll_source =
   {
@@ -620,31 +508,25 @@ MessageValue VerifyInstallation(GameVersions version)
 
   for (std::string dll : dll_map[version])
   {
-    std::string destination = SimCopterGameLocationDirectory + dll;
-    if (PathFileExistsA(destination.c_str()))
-    {
-      OutputDebugString(std::string(dll + " already exists \n").c_str());
-      continue;
-    }
+    std::filesystem::path dll_path = install_dir;
+    dll_path.append(dll_source[dll] + dll);
 
-    std::string copy_location = VideoGameInstallDirectory + dll_source[dll] + dll;
-    if (!PathFileExistsA(copy_location.c_str()))
+    if (!PathFileExistsA(dll_path.string().c_str()))
     {
       std::string message = "Your game version is: \n" + version_description[version];
       message += "\n\nWe could not find the required dll: " + dll + "\nExpected location:\n";
-      message += copy_location + "\n\n";
+      message += dll_path.string() + "\n\n";
       message += "This usually happens if you are trying to mismatch game versions with different CDs. ";
       message += "Try using the 'Classics CD', it should have all the dlls so you can use any game version.\n";
       return MessageValue(FALSE, message);
     }
 
-    MessageValue copy_result = CopyFileSafe(copy_location, destination);
+    MessageValue copy_result = CopyFileSafe(dll_path.string(), game_dir.string());
     if (!copy_result.Value)
     {
       return copy_result;
     }
   }
-
   SCXLoader::FixMaxisHelpViewer();
 
   return MessageValue(TRUE);
@@ -678,16 +560,3 @@ MessageValue CopyFileSafe(std::string source, std::string destination)
   return MessageValue(TRUE);
 }
 
-std::vector<std::string> split_string(char delim, std::string split_string)
-{
-  std::vector<std::string> vector;
-  std::string splitter(split_string);
-  while (splitter.find(delim) != std::string::npos)
-  {
-    auto sfind = splitter.find(delim);
-    vector.push_back(splitter.substr(0, sfind));
-    splitter.erase(0, sfind + 1);
-  }
-  vector.push_back(splitter);
-  return vector;
-}

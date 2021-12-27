@@ -88,6 +88,27 @@ struct Settings
     BOOL resultGameVersion =
       Registry::SetValue(rkey, RegistryEntry(REGISTRY_GAMEVER,
         new RegistryValue(info.PatchedGameVersion)));
+
+    return resultPatchedHash && resultGameLocation &&
+           resultPatcherVersion && resultInstalled &&
+           resultGameVersion;
+  }
+
+  static BOOL ClearPatchInfo()
+  {
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = REGISTRY_SUBKEY;
+
+    BOOL resultPatchedHash = Registry::DeleteValue(rkey, RegistryEntry(REGISTRY_PATCHEDHASH));
+    BOOL resultGameLocation = Registry::DeleteValue(rkey, RegistryEntry(REGISTRY_GAMELOCATION));
+    BOOL resultPatcherVersion = Registry::DeleteValue(rkey, RegistryEntry(REGISTRY_PATCHERVER));
+    BOOL resultInstalled = Registry::DeleteValue(rkey, RegistryEntry(REGISTRY_INSTALLED));
+    BOOL resultGameVersion = Registry::DeleteValue(rkey, RegistryEntry(REGISTRY_GAMEVER));
+
+    return resultPatchedHash && resultGameLocation &&
+      resultPatcherVersion && resultInstalled &&
+      resultGameVersion;
   }
 
 };

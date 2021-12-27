@@ -32,6 +32,7 @@ public:
   static bool LoadFiles();
   static int GetPatchedSCXVersion();
   static bool CreatePatchedGame(std::string, SCXParameters);
+  static bool InstallGame();
   static bool StartSCX(SCXParameters);
   static bool GetValidInstallation();
   static bool FixMaxisHelpViewer();

@@ -76,4 +76,5 @@ struct RegistryKey {
 namespace Registry {
   BOOL SetValue(const RegistryKey, const RegistryEntry&);
   BOOL GetValue(const RegistryKey, RegistryEntry&);
+  BOOL DeleteValue(const RegistryKey, const RegistryEntry&);
 }
