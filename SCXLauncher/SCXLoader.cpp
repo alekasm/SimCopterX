@@ -52,9 +52,13 @@ int SCXLoader::GetPatchedSCXVersion()
 
 bool SCXLoader::GetFileCompatability(std::wstring game_location)
 {
+  RegistryKey rkey;
+  rkey.hKey = HKEY_CURRENT_USER;
+  rkey.SubKey = L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
+
   HKEY hKey;
-  LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_READ, &hKey);
-  CHAR lpData[512];
+  LONG lRes = RegOpenKeyExW(rkey.hKey, rkey.SubKey.c_str(), 0, KEY_READ, &hKey);
+  WCHAR lpData[512];
   DWORD lpcbData = sizeof(lpData);
   std::wstring format_location(game_location);
   std::replace(format_location.begin(), format_location.end(), '/', '\\');
@@ -65,7 +69,13 @@ bool SCXLoader::GetFileCompatability(std::wstring game_location)
     OutputDebugStringW(std::wstring(format_location + L"\n").c_str());
     return false;
   }
-  return std::string(lpData).find("256COLOR") != std::string::npos;
+
+  if (std::wstring(lpData).find(L"~ 256COLOR") == std::wstring::npos)
+  {
+    return Registry::SetValue(rkey, RegistryEntry(format_location,
+     new RegistryValue(L"~ 256COLOR")));
+  }
+  return true;
 }
 
 MessageValue VerifyOriginalGame(std::string source, GameVersions& version)

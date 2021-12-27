@@ -122,8 +122,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   PatchInfo info = Settings::GetPatchInfo();
 
   SCXLoader::LoadSettings();
-  update_state();
   get_settings();
+  update_state(); 
 
   MSG msg;
   while (!end_process && GetMessage(&msg, NULL, 0, 0))
