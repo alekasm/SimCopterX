@@ -8,6 +8,12 @@ static void ShowMessage(std::string title, std::string message)
   OutputDebugString(message.c_str());
 }
 
+static void ShowMessage(std::wstring title, std::wstring message)
+{
+  MessageBoxW(NULL, message.c_str(), title.c_str(), MB_OK);
+  OutputDebugStringW(message.c_str());
+}
+
 static std::string LastErrorString()
 {
   return std::string("SimCopterX Error (" + std::to_string(GetLastError()) + ")");

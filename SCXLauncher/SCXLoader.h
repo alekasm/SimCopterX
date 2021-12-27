@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <regex>
+#include <filesystem>
 #include "Patcher.h"
 #include "FileVersion.h"
 #include "Message.h"
@@ -35,9 +36,9 @@ public:
   static bool InstallGame();
   static bool StartSCX(SCXParameters);
   static bool GetValidInstallation();
-  static bool FixMaxisHelpViewer();
+  static bool FixMaxisHelpViewer(std::filesystem::path);
   static constexpr unsigned int SCX_VERSION = 15;
 private:
-  static bool GetFileCompatability(std::string);
+  static bool GetFileCompatability(std::wstring);
 };
 

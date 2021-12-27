@@ -1,11 +1,10 @@
 #include "SCXLoader.h"
 #include "Settings.h"
-#include <filesystem>
 
 std::string LastErrorString();
-MessageValue CreateMD5Hash(std::string);
+MessageValue CreateMD5Hash(std::wstring);
 MessageValue VerifyOriginalGame(std::string, GameVersions&);
-MessageValue VerifyInstallationDirectory(std::string, std::filesystem::path&);
+MessageValue VerifyInstallationDirectory(std::wstring, std::filesystem::path&);
 MessageValue VerifyInstallation(GameVersions version, std::filesystem::path);
 MessageValue CopyFileSafe(std::string source, std::string destination);
 
@@ -14,6 +13,7 @@ namespace
   const std::string GAME_FILE = "SimCopter.exe";
   const std::string BACKUP_FILE = "SimCopter(Backup).exe";
   const std::string PATCH_NAME = "SimCopterX";
+  const std::wstring PATCH_NAMEW = L"SimCopterX";
   const std::string GAME_NAME = "SimCopter";
 
   std::map<std::string, GameVersions> version_hashes =
@@ -50,19 +50,19 @@ int SCXLoader::GetPatchedSCXVersion()
   return patch_info.PatcherVersion;
 }
 
-bool SCXLoader::GetFileCompatability(std::string game_location)
+bool SCXLoader::GetFileCompatability(std::wstring game_location)
 {
   HKEY hKey;
   LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_READ, &hKey);
   CHAR lpData[512];
   DWORD lpcbData = sizeof(lpData);
-  std::string format_location(game_location);
+  std::wstring format_location(game_location);
   std::replace(format_location.begin(), format_location.end(), '/', '\\');
-  LSTATUS status = RegQueryValueEx(hKey, format_location.c_str(), 0, NULL, (LPBYTE)lpData, &lpcbData);
+  LSTATUS status = RegQueryValueExW(hKey, format_location.c_str(), 0, NULL, (LPBYTE)lpData, &lpcbData);
   if (status != ERROR_SUCCESS)
   {
     OutputDebugString(std::string("Registry Error: " + std::to_string((int)status) + "\n").c_str());
-    OutputDebugString(std::string(format_location + "\n").c_str());
+    OutputDebugStringW(std::wstring(format_location + L"\n").c_str());
     return false;
   }
   return std::string(lpData).find("256COLOR") != std::string::npos;
@@ -92,7 +92,7 @@ MessageValue VerifyOriginalGame(std::string source, GameVersions& version)
     sfi_result += result.Message;
   }
 
-  MessageValue hash_check = CreateMD5Hash(source);
+  MessageValue hash_check = CreateMD5Hash(std::wstring(source.begin(), source.end()));
   auto it = version_hashes.find(hash_check.Message);
   if (!hash_check.Value || it == version_hashes.end())
   {
@@ -263,9 +263,10 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
   return true;
 }
 
-void ClearPatchFile(std::string reason)
+void ClearPatchInfo(std::wstring reason)
 {
-  //ShowMessage(PATCH_NAME + " Error", reason);
+  std::string title = PATCH_NAME + " Error";
+  ShowMessage(std::wstring(title.begin(), title.end()), reason);
   patch_info = PatchInfo();
   Settings::ClearPatchInfo();
 }
@@ -295,36 +296,42 @@ MessageValue VerifyInstallationDirectory(std::wstring game_location, std::filesy
     return MessageValue(FALSE, "The game does not appear to be on a valid extracted CD, missing autorun.inf");
   }
   install_dir = root_path;
-  return MessageValue(TRUE);  
+  return MessageValue(TRUE);
 }
 
 
 bool VerifyPatchedGame()
 {
-  if (!PathFileExistsW(info.PatchedGameLocation.c_str()))
+  if (!PathFileExistsW(patch_info.PatchedGameLocation.c_str()))
   {
-    //ClearPatchFile(std::string("The game no longer exists where we patched it:\n" + VideoGameLocation + "\nPlease try repatching.").c_str());
-    ClearPatchFile(std::string("").c_str());
+    ClearPatchInfo(std::wstring(L"The game no longer exists where we patched it:\n" + 
+      patch_info.PatchedGameLocation + L"\nPlease try repatching.").c_str());
     return false;
   }
 
-  MessageValue hash_check = CreateMD5Hash(VideoGameLocation);
+  MessageValue hash_check = CreateMD5Hash(patch_info.PatchedGameLocation);
   if (!hash_check.Value)
   {
     ShowMessage(PATCH_NAME + " Error", hash_check.Message);
     return false;
   }
 
-  if (hash_check.Message.compare(patched_hash) != 0)
+  std::wstring hash_checkw(hash_check.Message.begin(), hash_check.Message.end());
+
+  if (hash_checkw.compare(patch_info.PatchedGameHash) != 0)
   {
-    ClearPatchFile("The patched game doesn't have a matching hash, this can happen if you modified the patched game or restored it back to the original game. Please try repatching.");
+    ClearPatchInfo(L"The patched game doesn't have a matching hash, this can happen"
+                    "if you modified the patched game or restored it back to the"
+                    "original game. Please try repatching.");
     return false;
   }
 
-  if (patched_scxversion != SCXLoader::SCX_VERSION)
+  if (patch_info.PatcherVersion != SCXLoader::SCX_VERSION)
   {
-    ClearPatchFile(std::string("You currently have " + PATCH_NAME + " Version " + std::to_string(SCXLoader::SCX_VERSION) + " however the game was \npreviously patched using Version " +
-      std::to_string(patched_scxversion) + ". Please repatch the game."));
+    ClearPatchInfo(std::wstring(L"You currently have " + PATCH_NAMEW + 
+      L" Version " + std::to_wstring(SCXLoader::SCX_VERSION) +
+      L" however the game was \npreviously patched using Version " +
+      std::to_wstring(patch_info.PatcherVersion) + L". Please repatch the game."));
     return false;
   }
 
@@ -334,14 +341,14 @@ bool VerifyPatchedGame()
 bool SCXLoader::StartSCX(SCXParameters params)
 {
 
-  if (patched_scxversion < 0) //This shouldn't happen because the button should not be enabled
-  {
+  if (patch_info.PatchedGameVersion < 0) 
+  { //This shouldn't happen because the button should not be enabled
     ShowMessage(PATCH_NAME + " Error", "You need to patch the game before starting.");
     return false;
   }
 
-  if (!ValidInstallation) //This shouldn't happen because the button should not be enabled
-  {
+  if (!patch_info.PatchedGameIsInstalled) 
+  { //This shouldn't happen because the button should not be enabled
     ShowMessage(PATCH_NAME + " Error", "You need to patch the game using 'Verify Install'");
     return false;
   }
@@ -351,7 +358,7 @@ bool SCXLoader::StartSCX(SCXParameters params)
     return false;
   }
 
-  if (!params.fullscreen && !GetFileCompatability(VideoGameLocation))
+  if (!params.fullscreen && !GetFileCompatability(patch_info.PatchedGameLocation))
   {
     const char* message =
       "You must run the SimCopter.exe in 8-bit color to use Windowed mode!\n\n"
@@ -364,20 +371,21 @@ bool SCXLoader::StartSCX(SCXParameters params)
     return false;
   }
 
+  std::string game_location = std::filesystem::path(patch_info.PatchedGameLocation).string();
   PEINFO info;
-  if (!Patcher::CreateDetourSection(VideoGameLocation.c_str(), &info)) //Should grab detour section
-  {
+  if (!Patcher::CreateDetourSection(game_location.c_str(), &info))
+  { //Should grab detour section
     ShowMessage(PATCH_NAME + " Patch Failed", "Failed to modify the game's executable file.\n Make sure the game isn't running or opened in another application");
     return false;
   }
 
   std::vector<Instructions> instructions;
   DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
-  DWORD res_address = Versions[game_version]->data.RES_TYPE;
+  DWORD res_address = Versions[patch_info.PatchedGameVersion]->data.RES_TYPE;
   instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
   instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
 
-  if (!Patcher::Patch(info, instructions, VideoGameLocation.c_str()))
+  if (!Patcher::Patch(info, instructions, game_location.c_str()))
   {
     ShowMessage(PATCH_NAME + " Patch Failed", "Failed to patch the game file.\n Make sure the game isn't running or opened in another application");
     return false;
@@ -389,19 +397,19 @@ bool SCXLoader::StartSCX(SCXParameters params)
   CreatePatchFile();
 
   std::string parameters = params.fullscreen ? "-f" : "-w";
-  HINSTANCE hInstance = ShellExecuteA(NULL, "open", VideoGameLocation.c_str(), parameters.c_str(), NULL, SW_SHOWDEFAULT);
+  HINSTANCE hInstance = ShellExecuteA(NULL, "open", game_location.c_str(), parameters.c_str(), NULL, SW_SHOWDEFAULT);
   int h_result = reinterpret_cast<int>(hInstance);
   if (h_result <= 31)
   {
-    ShowMessage(std::string(PATCH_NAME + " Error (" + std::to_string(h_result) + ")"), std::string("Failed to start the patched game at: \n" + VideoGameLocation));
+    ShowMessage(std::string(PATCH_NAME + " Error (" + std::to_string(h_result) + ")"), std::string("Failed to start the patched game at: \n" + game_location));
     return false;
   }
   return true;
 }
 
-bool SCXLoader::FixMaxisHelpViewer()
+bool SCXLoader::FixMaxisHelpViewer(std::filesystem::path path)
 {
-  std::string webste32 = std::string(VideoGameInstallDirectory) + "/setup/webste32/";
+  std::string webste32 = path.string() + "/setup/webste32/";
   std::vector<std::string> webste_files = { "regsvr32.exe", "webster.ocx" };
   for (std::string file : webste_files)
   {
@@ -418,7 +426,7 @@ bool SCXLoader::FixMaxisHelpViewer()
 
 bool SCXLoader::LoadFiles()
 {
-  info = Settings::GetPatchInfo();
+  patch_info = Settings::GetPatchInfo();
   if (!VerifyPatchedGame())
   {
     OutputDebugString("Failed to verify patched game files \n");
@@ -527,7 +535,7 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
       return copy_result;
     }
   }
-  SCXLoader::FixMaxisHelpViewer();
+  SCXLoader::FixMaxisHelpViewer(install_dir);
 
   return MessageValue(TRUE);
 }

@@ -44,7 +44,7 @@ BOOL Registry::GetValue(const RegistryKey key, RegistryEntry& entry)
   return TRUE;
 }
 
-BOOL DeleteValue(const RegistryKey key, const RegistryEntry& value)
+BOOL Registry::DeleteValue(const RegistryKey key, const RegistryEntry& value)
 {
   HKEY hKey;
   DWORD disposition;
