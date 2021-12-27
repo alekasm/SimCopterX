@@ -330,8 +330,8 @@ bool VerifyPatchedGame()
 
   if (hash_checkw.compare(patch_info.PatchedGameHash) != 0)
   {
-    ClearPatchInfo(L"The patched game doesn't have a matching hash, this can happen"
-                    "if you modified the patched game or restored it back to the"
+    ClearPatchInfo(L"The patched game doesn't have a matching hash, this can happen "
+                    "if you modified the patched game or restored it back to the "
                     "original game. Please try repatching.");
     return false;
   }

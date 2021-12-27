@@ -69,7 +69,7 @@ void update_sleep_bar()
 void get_settings()
 {
   info = Settings::GetSettingsInfo();
-  SendMessage(SleepBar, TBM_SETPOS, WPARAM(FALSE), LPARAM(info.SleepTime));
+  SendMessage(SleepBar, TBM_SETPOS, WPARAM(TRUE), LPARAM(info.SleepTime));
   SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)(info.Resolution), (LPARAM)0);
   if (info.ScreenMode)
   {
@@ -208,7 +208,7 @@ void initialize(HINSTANCE hInstance)
   settingsHwnd = CreateWindowEx(
     WS_EX_STATICEDGE,
     SettingsClass.lpszClassName,
-    std::string("SimCopterX").c_str(),
+    std::string("SimCopterX - Version " + std::to_string(SCXLoader::SCX_VERSION)).c_str(),
     WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
     window_x, window_y, window_width, window_height, NULL, NULL, NULL, NULL);
 
