@@ -9,6 +9,8 @@
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initialize(HINSTANCE hInstance);
+void enable_settings(bool);
+void refresh();
 SCXParameters GetParameters();
 
 namespace
@@ -84,11 +86,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   PatchInfo info = Settings::GetPatchInfo();
 
 
-  SCXLoader::LoadFiles();
-  if (SCXLoader::GetPatchedSCXVersion() > 0)
-  {
-    OutputDebugString("SimCopter has been previously patched, ready to play \n");
+  SCXLoader::LoadSettings();
+  if (SCXLoader::GetValidInstallation())
+  { //Patched and installed
     Button_Enable(StartButton, TRUE);
+    enable_settings(true);
+    Button_Enable(InstallButton, FALSE);
+  }
+  else if (SCXLoader::GetPatchedSCXVersion() > 0)
+  { //Patched but not installed
+    Button_Enable(StartButton, FALSE);
+    Button_Enable(InstallButton, TRUE);
+    enable_settings(false);
+  }
+  else
+  { //Not patched or installed
+    Button_Enable(StartButton, FALSE);
+    Button_Enable(InstallButton, FALSE);
+    enable_settings(false);
   }
 
   MSG msg;
@@ -104,6 +119,26 @@ void destroy()
 {
   if (settingsHwnd != NULL)
     DestroyWindow(settingsHwnd);
+}
+void refresh()
+{
+  UpdateWindow(wsRadioButton);
+  UpdateWindow(PatchButton);
+  UpdateWindow(speedTextbox);
+  UpdateWindow(resolutionCombobox);
+  UpdateWindow(StartButton);
+  UpdateWindow(fsRadioButton);
+  UpdateWindow(InstallButton);
+}
+
+void enable_settings(bool enable)
+{
+  Button_Enable(fsRadioButton, enable);
+  Button_Enable(wsRadioButton, enable);
+  ComboBox_Enable(resolutionCombobox, enable);
+  Edit_Enable(SleepBar, enable);
+  Edit_Enable(speedTextbox, enable);
+  refresh();
 }
 
 void initialize(HINSTANCE hInstance)
@@ -133,14 +168,6 @@ void initialize(HINSTANCE hInstance)
     std::string("SimCopterX").c_str(),
     WS_VISIBLE | WS_CLIPCHILDREN | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
     window_x, window_y, window_width, window_height, NULL, NULL, NULL, NULL);
-
-  /*
-  verifyCheckbox = CreateWindow(
-    "Button", "Verify Install", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTOCHECKBOX,
-    225, 65, 100, 25, settingsHwnd, NULL,
-    NULL, NULL);
-  Button_SetCheck(verifyCheckbox, BST_CHECKED);
-  */
 
   PatchButton = CreateWindow(
     "Button", "Patch Game", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
@@ -180,42 +207,17 @@ void initialize(HINSTANCE hInstance)
     110, 225, 150, 25, settingsHwnd, NULL,
     NULL, NULL);
 
-  /*
-  HelpButton = CreateWindow(
-    "Button", "?", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
-    345, 225, 30, 25, settingsHwnd, NULL,
-    NULL, NULL);
-    */
-
   SendMessage(SleepBar, TBM_SETRANGEMIN, WPARAM(FALSE), LPARAM(1));
   SendMessage(SleepBar, TBM_SETRANGEMAX, WPARAM(FALSE), LPARAM(9));
   SendMessage(SleepBar, TBM_SETPOS, WPARAM(FALSE), LPARAM(5));
   SendMessage(SleepBar, TBM_SETTICFREQ, WPARAM(1), LPARAM(0));
-
-  UpdateWindow(PatchButton);
-  UpdateWindow(InstallButton);
-  //UpdateWindow(verifyCheckbox);
-
-  UpdateWindow(speedTextbox);
-
-  UpdateWindow(StartButton);
-  //UpdateWindow(HelpButton);
-  UpdateWindow(SleepBar);
 
 
   for (int i = 0; i < sizeof(ResolutionOptions) / sizeof(LPCSTR); i++)
     SendMessage(resolutionCombobox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)ResolutionOptions[i]);
 
   SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
-
-  UpdateWindow(resolutionCombobox);
-
-  Button_Enable(StartButton, FALSE);
-  Button_Enable(InstallButton, FALSE);
-
-  UpdateWindow(fsRadioButton);
-  UpdateWindow(wsRadioButton);
-
+  refresh();
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -243,14 +245,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     EndPaint(hWnd, &ps);
     return 0;
   case WM_ACTIVATE:
-    UpdateWindow(wsRadioButton);
-    UpdateWindow(PatchButton);
-    //UpdateWindow(verifyCheckbox);
-    UpdateWindow(speedTextbox);
-    //UpdateWindow(HelpButton);
-    UpdateWindow(resolutionCombobox);
-    UpdateWindow(StartButton);
-    UpdateWindow(fsRadioButton);
+    refresh();
     return 0;
 
   case WM_HSCROLL:

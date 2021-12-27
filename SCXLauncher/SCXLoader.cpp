@@ -341,7 +341,7 @@ bool VerifyPatchedGame()
 bool SCXLoader::StartSCX(SCXParameters params)
 {
 
-  if (patch_info.PatchedGameVersion < 0) 
+  if (patch_info.PatcherVersion < 0)
   { //This shouldn't happen because the button should not be enabled
     ShowMessage(PATCH_NAME + " Error", "You need to patch the game before starting.");
     return false;
@@ -424,14 +424,13 @@ bool SCXLoader::FixMaxisHelpViewer(std::filesystem::path path)
   return reinterpret_cast<int>(hInstance) > 32;
 }
 
-bool SCXLoader::LoadFiles()
+void SCXLoader::LoadSettings()
 {
   patch_info = Settings::GetPatchInfo();
-  if (!VerifyPatchedGame())
+  if (patch_info.PatcherVersion > 0)
   {
-    OutputDebugString("Failed to verify patched game files \n");
+    VerifyPatchedGame();
   }
-  return true;
 }
 
 MessageValue CreateMD5Hash(std::wstring filename_wstring)

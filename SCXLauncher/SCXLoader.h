@@ -30,7 +30,7 @@ struct SCXParameters
 class SCXLoader
 {
 public:
-  static bool LoadFiles();
+  static void LoadSettings();
   static int GetPatchedSCXVersion();
   static bool CreatePatchedGame(std::string, SCXParameters);
   static bool InstallGame();
