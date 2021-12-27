@@ -8,6 +8,9 @@
 #define REGISTRY_PATCHERVER L"PatcherVersion"
 #define REGISTRY_INSTALLED L"Installed"
 #define REGISTRY_GAMEVER L"GameVersion"
+#define REGISTRY_SCREENMODE L"ScreenMode"
+#define REGISTRY_RESOLUTION L"Resolution"
+#define REGISTRY_SLEEPTIME L"SleepTime"
 
 
 struct PatchInfo
@@ -19,8 +22,64 @@ struct PatchInfo
   int PatcherVersion = -1;
 };
 
+struct SettingsInfo
+{
+  int ScreenMode = 0;
+  int Resolution = 0;
+  int SleepTime = 5;
+};
+
 struct Settings
 {
+  static const SettingsInfo GetSettingsInfo()
+  {
+    RegistryEntry re_screenmode(REGISTRY_SCREENMODE);
+    RegistryEntry re_resolution(REGISTRY_RESOLUTION);
+    RegistryEntry re_sleeptime(REGISTRY_SLEEPTIME);
+
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = REGISTRY_SUBKEY;
+    SettingsInfo info;
+
+    if (Registry::GetValue(rkey, re_screenmode))
+    {
+      info.ScreenMode = std::stoi(re_screenmode.Value->wstring);
+    }
+
+    if (Registry::GetValue(rkey, re_resolution))
+    {
+      info.Resolution = std::stoi(re_resolution.Value->wstring);
+    }
+
+    if (Registry::GetValue(rkey, re_sleeptime))
+    {
+      info.SleepTime = std::stoi(re_sleeptime.Value->wstring);
+    }
+    return info;
+  }
+
+  static BOOL SetSettingsInfo(const SettingsInfo& info)
+  {
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = REGISTRY_SUBKEY;
+
+    BOOL resultScreenMode =
+      Registry::SetValue(rkey, RegistryEntry(REGISTRY_SCREENMODE,
+        new RegistryValue(info.ScreenMode)));
+
+    BOOL resultResolution =
+      Registry::SetValue(rkey, RegistryEntry(REGISTRY_RESOLUTION,
+        new RegistryValue(info.Resolution)));
+
+    BOOL resultSleepTime =
+      Registry::SetValue(rkey, RegistryEntry(REGISTRY_SLEEPTIME,
+        new RegistryValue(info.SleepTime)));
+
+    return resultResolution && resultScreenMode && resultSleepTime;
+  }
+
 
   static const PatchInfo GetPatchInfo()
   {
@@ -33,7 +92,6 @@ struct Settings
     RegistryKey rkey;
     rkey.hKey = HKEY_CURRENT_USER;
     rkey.SubKey = REGISTRY_SUBKEY;
-
     PatchInfo info;
 
     if (Registry::GetValue(rkey, re_hash))

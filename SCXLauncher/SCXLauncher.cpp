@@ -11,7 +11,9 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 void initialize(HINSTANCE hInstance);
 void enable_settings(bool);
 void refresh();
-void update_settings();
+void update_state();
+void get_settings();
+void update_sleep_bar();
 SCXParameters GetParameters();
 
 namespace
@@ -33,6 +35,9 @@ namespace
 
   HWND speedTextbox;
   HWND resolutionCombobox;
+
+  SettingsInfo info;
+
   int resolutionValue = 0;
   bool fullscreenValue = true;
 
@@ -50,11 +55,41 @@ namespace
   HBITMAP hBitmap = NULL;
 }
 
+void update_sleep_bar()
+{
+  if (info.SleepTime && info.SleepTime <= (sizeof(SpeedValues) / 4))
+    speedMS = SpeedValues[info.SleepTime - 1];
+
+  std::string speedText("Game Sleep: ");
+  speedText.append(std::to_string(speedMS)).append("ms");
+  SetWindowText(speedTextbox, speedText.c_str());
+  UpdateWindow(speedTextbox);
+}
+
+void get_settings()
+{
+  info = Settings::GetSettingsInfo();
+  SendMessage(SleepBar, TBM_SETPOS, WPARAM(FALSE), LPARAM(info.SleepTime));
+  SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)(info.Resolution), (LPARAM)0);
+  if (info.ScreenMode)
+  {
+    Button_SetCheck(fsRadioButton, BST_CHECKED);
+    Button_SetCheck(wsRadioButton, BST_UNCHECKED);
+  }
+  else
+  {
+    Button_SetCheck(fsRadioButton, BST_UNCHECKED);
+    Button_SetCheck(wsRadioButton, BST_CHECKED);
+  }
+  update_sleep_bar();
+  refresh();
+}
+
 SCXParameters GetParameters()
 {
   SCXParameters parameters;
-  //parameters.verify_install = SendMessage(verifyCheckbox, BM_GETCHECK, 0, 0) == BST_CHECKED;
   parameters.fullscreen = SendMessage(fsRadioButton, BM_GETCHECK, 0, 0) == BST_CHECKED;
+  info.ScreenMode = parameters.fullscreen;
 
   switch (resolutionValue)
   {
@@ -87,7 +122,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   PatchInfo info = Settings::GetPatchInfo();
 
   SCXLoader::LoadSettings();
-  update_settings();
+  update_state();
+  get_settings();
 
   MSG msg;
   while (!end_process && GetMessage(&msg, NULL, 0, 0))
@@ -104,7 +140,7 @@ void destroy()
     DestroyWindow(settingsHwnd);
 }
 
-void update_settings()
+void update_state()
 {
   if (SCXLoader::GetValidInstallation())
   { //Patched and installed
@@ -135,6 +171,7 @@ void refresh()
   UpdateWindow(StartButton);
   UpdateWindow(fsRadioButton);
   UpdateWindow(InstallButton);
+  UpdateWindow(SleepBar);
 }
 
 void enable_settings(bool enable)
@@ -255,18 +292,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     return 0;
 
   case WM_HSCROLL:
-    if (true)
     {
-      int sliderValue = SendMessage((HWND)lParam, (UINT)TBM_GETPOS, (WPARAM)0, (LPARAM)0);
+      info.SleepTime = SendMessage((HWND)lParam, (UINT)TBM_GETPOS, (WPARAM)0, (LPARAM)0);
       speedMS = 16;
-
-      if (sliderValue && sliderValue <= (sizeof(SpeedValues) / 4))
-        speedMS = SpeedValues[sliderValue - 1];
-
-      std::string speedText("Game Sleep: ");
-      speedText.append(std::to_string(speedMS)).append("ms");
-      SetWindowText(speedTextbox, speedText.c_str());
-      UpdateWindow(speedTextbox);
+      update_sleep_bar();
     }
     return 0;
   case WM_COMMAND:
@@ -275,9 +304,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     {
       if (HIWORD(wParam) == CBN_SELCHANGE)
       {
-        int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+        info.Resolution = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
         char ListItem[256];
-        SendMessage((HWND)lParam, (UINT)CB_GETLBTEXT, (WPARAM)ItemIndex, (LPARAM)ListItem);
+        SendMessage((HWND)lParam, (UINT)CB_GETLBTEXT, (WPARAM)info.Resolution, (LPARAM)ListItem);
         for (int i = 0; i < sizeof(ResolutionOptions) / sizeof(LPCSTR); i++)
         {
           if (_stricmp(std::string(ListItem).c_str(), ResolutionOptions[i]) == 0)
@@ -322,19 +351,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
           GetOpenFileName(&ofn);
           SCXParameters params = GetParameters();
           bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
-          update_settings();
+          update_state();
           //Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);
           //Button_Enable(PatchButton, TRUE);
         }
         else if ((HWND)lParam == InstallButton)
         {
           SCXLoader::InstallGame();
-          update_settings();
+          update_state();
         }
         else if ((HWND)lParam == StartButton)
         {
           if (SCXLoader::StartSCX(GetParameters()))
           {
+            Settings::SetSettingsInfo(info);
             end_process = true;
           }
           ::SetFocus(NULL);
