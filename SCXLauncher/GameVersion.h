@@ -3,7 +3,7 @@
 
 struct FunctionType
 {
-  DWORD MAIN_LOOP;
+  DWORD WINMAIN;
   DWORD GLOBAL_INIT;
   DWORD FLAP_UI;
   DWORD CHOPPER_UI;
@@ -26,6 +26,10 @@ struct FunctionType
   DWORD CHOPPER_RENDER_UNK1;
   DWORD SET_EMERGENCY_VEHICLE_AVAILABLE; //arg0 = vehicle index
   DWORD EMERGENCY_VEHICLE_RENDER_UNK1;
+  DWORD HUNLOCK; //Only available in debug
+  DWORD DOASSERT; //Only available in debug
+  DWORD ASSERT; //Only available in debug
+  DWORD DS_PEEKMESSAGE; //Only needed in debug
 };
 
 struct DataType
@@ -49,7 +53,7 @@ const struct VersionClassics : GameVersion
   VersionClassics()
   {
     functions.GLOBAL_INIT = 0x45DDB0;
-    functions.MAIN_LOOP = 0x4308B0;
+    functions.WINMAIN = 0x4308B0;
     functions.DS_SLEEP = 0x62B624;
     functions.CD_CHECK = 0x435840;
     functions.CHOPPER_UI = 0x4124C0;
@@ -64,13 +68,13 @@ const struct VersionClassics : GameVersion
     functions.CHOPPER_RENDER_UNK1 = 0x48DD80;
     functions.EMERGENCY_VEHICLE_RENDER_UNK1 = 0x498040;
 
-    functions.BITDEPTH_CHECK = 0x45E870;	//+0x170
-    functions.VERSIONS = 0x45F210;			//Contains versions for everything (game, glide, os, etc)
-    functions.GRAPHICS_INIT = 0x41C2E0;		//Conditional on whether to initialize glide or DDraw = use to patch DDraw
-    functions.ARG_PARSER = 0x45EB10;		//All command-line arguments processed here
-    functions.GFX_SOUND_INIT = 0x45DEC0;	//+36F (45E22F) = if not windowed mode - calls DirectX fullscreen
-    functions.ADJUST_WINDOW = 0x421400;		//Positions the window (LPRECT) in the center of your screen
-    functions.CHEAT = 0x438370;				//This function will get rewritten, space: 0x240D (9229 bytes)
+    functions.BITDEPTH_CHECK = 0x45E870;  //+0x170
+    functions.VERSIONS = 0x45F210;  //Contains versions for everything (game, glide, os, etc)
+    functions.GRAPHICS_INIT = 0x41C2E0; //Conditional on whether to initialize glide or DDraw = use to patch DDraw
+    functions.ARG_PARSER = 0x45EB10;  //All command-line arguments processed here
+    functions.GFX_SOUND_INIT = 0x45DEC0;  //+36F (45E22F) = if not windowed mode - calls DirectX fullscreen
+    functions.ADJUST_WINDOW = 0x421400; //Positions the window (LPRECT) in the center of your screen
+    functions.CHEAT = 0x438370;	  //This function will get rewritten, space: 0x240D (9229 bytes)
 
     data.RES_TYPE = 0x5017D0;
   }
@@ -81,7 +85,7 @@ const struct Version11SC : GameVersion
   Version11SC()
   {
     functions.GLOBAL_INIT = 0x45ADE0;
-    functions.MAIN_LOOP = 0x42DBB0;
+    functions.WINMAIN = 0x42DBB0;
     functions.DS_SLEEP = 0x61D594;
     functions.CD_CHECK = 0x432B20;
     functions.CHOPPER_UI = 0x412440;
@@ -107,7 +111,7 @@ const struct Version11SCFR : GameVersion
   Version11SCFR()
   {
     functions.GLOBAL_INIT = 0x459B30;
-    functions.MAIN_LOOP = 0x42C900;
+    functions.WINMAIN = 0x42C900;
     functions.DS_SLEEP = 0x61D594;
     functions.CD_CHECK = 0x431870;
     functions.CHOPPER_UI = 0x411190;
@@ -131,7 +135,7 @@ const struct Version102Patch : GameVersion
   Version102Patch()
   {
     functions.GLOBAL_INIT = 0x45B540;
-    functions.MAIN_LOOP = 0x42E0A0;
+    functions.WINMAIN = 0x42E0A0;
     functions.DS_SLEEP = 0x62560C;
     functions.CD_CHECK = 0x433030;
     functions.CHOPPER_UI = 0x4124F0;
@@ -157,7 +161,7 @@ const struct Version10JP : GameVersion
   Version10JP()
   {
     functions.GLOBAL_INIT = 0x401800;
-    functions.MAIN_LOOP = 0x435100;
+    functions.WINMAIN = 0x435100;
     functions.DS_SLEEP = 0x61C598;
     functions.CD_CHECK = 0x43F9C0;
     functions.CHOPPER_UI = 0x419EE0;
@@ -181,7 +185,7 @@ const struct VersionOriginal : GameVersion
   VersionOriginal()
   {
     functions.GLOBAL_INIT = 0x45AC60;
-    functions.MAIN_LOOP = 0x42DA10;
+    functions.WINMAIN = 0x42DA10;
     functions.DS_SLEEP = 0x61B588;
     functions.CD_CHECK = 0x432900;
     functions.CHOPPER_UI = 0x412440;
@@ -201,44 +205,35 @@ const struct VersionOriginal : GameVersion
 } version_original;
 
 
-/*
+
 const struct VersionDeveloperDebug : GameVersion
 {
   VersionDeveloperDebug()
   {
-    functions.GLOBAL_INIT = 0x4885ED; //void __thiscall CGameApp::InitializeMemberVariables(CGameApp *__hidden this)
-    functions.MAIN_LOOP = 0x42DA10;
-    functions.DS_SLEEP = 0x61B588; //0x61B588
-    functions.CD_CHECK = 0x432900;
-    functions.CHOPPER_UI = 0x412440;
-    functions.FLAP_UI = 0x4127D0;
-    functions.CHOPPER_CLIP = 0x413090;
-    functions.RES_LOOKUP = 0x495B80; // void __thiscall CGameApp::GetFullRenderingWindowSize(CGameApp *this, int *, int *)
-    functions.SCREEN_CLIP = 0x432900; //int __thiscall CGameApp::CreateDisplaySurfaces(CGameApp *__hidden this)
-    functions.DDRAW_PALETTE = 0x49F0FA; //int __thiscall ScreenBuffer::UsePalette(ScreenBuffer *this, SparkalColor *pColors)
-    functions.HANGAR_MAIN = 0x43BD40;
-    functions.UNK_RENDER_1 = 0x4496E0;
-    functions.RENDER_SIMS = 0x4CF2C0;
-    functions.CHOPPER_RENDER_UNK1 = 0x489480;
-    functions.EMERGENCY_VEHICLE_RENDER_UNK1 = 0x491CB0;
-
-    data.RES_TYPE = 0x598F00; //_gameResolution
+    functions.GLOBAL_INIT = 0x4885ED;
+    functions.WINMAIN = 0x41F870;
+    functions.DS_SLEEP = 0x6C35D8;
+    functions.RES_LOOKUP = 0x495B80;
+    functions.SCREEN_CLIP = 0x432900;
+    functions.DDRAW_PALETTE = 0x49F0FA;
+    functions.HUNLOCK = 0x554A3D;
+    functions.DS_PEEKMESSAGE = 0x6C3800;
+    functions.DOASSERT = 0x554F30;
+    functions.ASSERT = 0x56DA30;
+    data.RES_TYPE = 0x598F00;
   }
-} version_original;
-*/
-
-
-
+} version_debug;
 
 
 //The order of this matters
-enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL, V10_JP };
-static const GameVersion* const Versions[6] =
+enum GameVersions { VCLASSICS, V11SC, V102_PATCH, V11SC_FR, ORIGINAL, V10_JP, DEBUG };
+static const GameVersion* const Versions[7] =
 {
   &version_classics,
   &version_11sc,
   &version_102patch,
   &version_11scfr,
   &version_original,
-  &version_10jp
+  &version_10jp,
+  &version_debug
 };

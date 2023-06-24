@@ -68,10 +68,13 @@
     <ClInclude Include="GameVersion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Settings.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Registry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameVersionInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

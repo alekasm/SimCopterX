@@ -1,15 +1,16 @@
 #include <Windows.h>
 #include <string>
-#include <Windowsx.h> //Button_SetCheck macro`
+#include <Windowsx.h> //Button_SetCheck macro
 #include <CommCtrl.h> //CommCtrl includes sliders
 #include <iostream>
 #include "resource.h"
 #include "SCXLoader.h"
 #include "Settings.h"
+#include "GameVersionInfo.h"
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void initialize(HINSTANCE hInstance);
-void enable_settings(bool);
+void enable_settings(bool, bool);
 void refresh();
 void update_state();
 void get_settings();
@@ -24,16 +25,13 @@ namespace
   HWND PatchButton;
   HWND InstallButton;
   HWND StartButton;
-  //HWND HelpButton;
-
-  HWND settingsHwnd;
-
-  //HWND verifyCheckbox;
+  HWND settingsHwnd; 
 
   HWND fsRadioButton;
   HWND wsRadioButton;
 
   HWND speedTextbox;
+  HWND versionTextbox;
   HWND resolutionCombobox;
 
   SettingsInfo info;
@@ -45,8 +43,6 @@ namespace
   HWND resolutionTextbox;
 
   WNDCLASSEX SettingsClass;
-
-  //bool verifyInstallationValue = false;
 
   bool CanEnd = false;
   bool end_process = false;
@@ -71,6 +67,7 @@ void get_settings()
   info = Settings::GetSettingsInfo();
   SendMessage(SleepBar, TBM_SETPOS, WPARAM(TRUE), LPARAM(info.SleepTime));
   SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)(info.Resolution), (LPARAM)0);
+  resolutionValue = info.Resolution;
   if (info.ScreenMode)
   {
     Button_SetCheck(fsRadioButton, BST_CHECKED);
@@ -114,6 +111,39 @@ SCXParameters GetParameters()
   return parameters;
 }
 
+void update_patch()
+{
+  const PatchInfo& patchInfo = SCXLoader::GetPatchInfo();
+  if (!patchInfo.IsPatched())
+  {
+    SetWindowText(versionTextbox, "Patch and Play Settings");
+    UpdateWindow(versionTextbox);
+    return;
+  }
+  else if (patchInfo.PatchedGameVersion == GameVersions::DEBUG)
+  {  //Make this perhaps a little more intuitive
+    SendMessage(resolutionCombobox, CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
+    ComboBox_Enable(resolutionCombobox, FALSE);
+    resolutionValue = 0;
+    info.Resolution = 0;
+  }
+  std::string versionText;
+  std::string friendlyName = GameVersionInfoMap.at(patchInfo.PatchedGameVersion).friendlyName;
+  if (patchInfo.PatchedGameIsInstalled)
+  {
+    versionText.append("Patch and Play Settings");
+  }
+  else
+  {
+    versionText.append(friendlyName);
+    versionText.append(" (Not Installed)");
+  }
+  SetWindowText(versionTextbox, versionText.c_str());
+  UpdateWindow(versionTextbox);
+  refresh();
+}
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
@@ -123,7 +153,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
   SCXLoader::LoadSettings();
   get_settings();
-  update_state(); 
+  update_state();
+  update_patch();
 
   MSG msg;
   while (!end_process && GetMessage(&msg, NULL, 0, 0))
@@ -145,20 +176,20 @@ void update_state()
   if (SCXLoader::GetValidInstallation())
   { //Patched and installed
     Button_Enable(StartButton, TRUE);
-    enable_settings(true);
+    enable_settings(true, true);
     Button_Enable(InstallButton, FALSE);
   }
   else if (SCXLoader::GetPatchedSCXVersion() > 0)
   { //Patched but not installed
     Button_Enable(StartButton, FALSE);
     Button_Enable(InstallButton, TRUE);
-    enable_settings(false);
+    enable_settings(false, false);
   }
   else
   { //Not patched or installed
     Button_Enable(StartButton, FALSE);
     Button_Enable(InstallButton, FALSE);
-    enable_settings(false);
+    enable_settings(true, false);
   }
 }
 
@@ -167,6 +198,7 @@ void refresh()
   UpdateWindow(wsRadioButton);
   UpdateWindow(PatchButton);
   UpdateWindow(speedTextbox);
+  UpdateWindow(versionTextbox);
   UpdateWindow(resolutionCombobox);
   UpdateWindow(StartButton);
   UpdateWindow(fsRadioButton);
@@ -174,13 +206,13 @@ void refresh()
   UpdateWindow(SleepBar);
 }
 
-void enable_settings(bool enable)
+void enable_settings(bool enableMods, bool enableArgs)
 {
-  Button_Enable(fsRadioButton, enable);
-  Button_Enable(wsRadioButton, enable);
-  ComboBox_Enable(resolutionCombobox, enable);
-  Edit_Enable(SleepBar, enable);
-  Edit_Enable(speedTextbox, enable);
+  Button_Enable(fsRadioButton, enableArgs);
+  Button_Enable(wsRadioButton, enableArgs);
+  ComboBox_Enable(resolutionCombobox, enableMods);
+  Edit_Enable(SleepBar, enableMods);
+  Edit_Enable(speedTextbox, enableMods);
   refresh();
 }
 
@@ -214,35 +246,39 @@ void initialize(HINSTANCE hInstance)
 
   PatchButton = CreateWindow(
     "Button", "Patch Game", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
-    10, 65, 150, 25, settingsHwnd, NULL,
+    20, 65, 150, 25, settingsHwnd, NULL,
     NULL, NULL);
 
   InstallButton = CreateWindow(
     "Button", "Install Game", WS_VISIBLE | WS_CHILDWINDOW | BS_PUSHBUTTON,
-    190, 65, 150, 25, settingsHwnd, NULL,
+    210, 65, 150, 25, settingsHwnd, NULL,
     NULL, NULL);
+
+  versionTextbox = CreateWindow("EDIT", "Select patch settings",
+    WS_CHILD | WS_VISIBLE | ES_CENTER | ES_READONLY | ES_MULTILINE,
+    10, 105, 390, 20, settingsHwnd, NULL, NULL, NULL);
 
   resolutionCombobox = CreateWindow(
     "COMBOBOX", "", WS_VISIBLE | WS_CHILDWINDOW | CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_BORDER,
-    10, 132, 195, 100, settingsHwnd, NULL, NULL, NULL);
+    10, 132 + 10, 195, 100, settingsHwnd, NULL, NULL, NULL);
 
   SleepBar = CreateWindow(
     TRACKBAR_CLASS, "TEST", WS_VISIBLE | WS_CHILD | TBS_HORZ | TBS_AUTOTICKS,
-    220, 144, 150, 20, settingsHwnd, NULL, NULL, NULL);
+    220, 144 + 10, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
   speedTextbox = CreateWindow("EDIT", "Game Sleep: 16ms",
     WS_CHILD | WS_VISIBLE | ES_LEFT | ES_READONLY | ES_MULTILINE,
-    230, 174, 150, 20, settingsHwnd, NULL, NULL, NULL);
+    230, 174 + 10, 150, 20, settingsHwnd, NULL, NULL, NULL);
 
   fsRadioButton = CreateWindow(
     "Button", "Fullscreen", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
-    10, 170, 100, 25, settingsHwnd, NULL,
+    10, 170 + 10, 100, 25, settingsHwnd, NULL,
     NULL, NULL);
   Button_SetCheck(fsRadioButton, BST_CHECKED);
 
   wsRadioButton = CreateWindow(
     "Button", "Windowed", WS_VISIBLE | WS_CHILDWINDOW | BS_AUTORADIOBUTTON,
-    115, 170, 100, 25, settingsHwnd, NULL,
+    115, 170 + 10, 100, 25, settingsHwnd, NULL,
     NULL, NULL);
 
   StartButton = CreateWindow(
@@ -342,23 +378,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
           ofn.lpstrFile = szFile;
           ofn.lpstrFile[0] = '\0';
           ofn.nMaxFile = sizeof(szFile);
-          ofn.lpstrFilter = "SimCopter.exe\0SimCopter.exe;\0";
+          ofn.lpstrFilter = "SimCopter.exe\0SimCopter.exe;COPTER_D.EXE\0";
           ofn.nFilterIndex = 1;
           ofn.lpstrFileTitle = NULL;
           ofn.nMaxFileTitle = 0;
           ofn.lpstrInitialDir = NULL;
           ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
           GetOpenFileName(&ofn);
-          SCXParameters params = GetParameters();
-          bool result = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
+          SCXParameters params = GetParameters(); //the window resolution is not working
+          bool patchSuccess = SCXLoader::CreatePatchedGame(ofn.lpstrFile, params);
+          update_patch();
+          if(patchSuccess)
+            Settings::SetSettingsInfo(info);
           update_state();
-          //Button_Enable(StartButton, params.verify_install ? SCXLoader::GetValidInstallation() : false);
-          //Button_Enable(PatchButton, TRUE);
+          Button_Enable(PatchButton, TRUE);
+          refresh();
         }
         else if ((HWND)lParam == InstallButton)
         {
           SCXLoader::InstallGame();
           update_state();
+          update_patch();
         }
         else if ((HWND)lParam == StartButton)
         {
@@ -375,25 +415,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
           ::SetFocus(NULL);
           UpdateWindow(InstallButton);
         }
-        /*
-        else if ((HWND)lParam == HelpButton)
-        {
-          MessageBox(hWnd, std::string(
-            "Version: " + std::to_string(SCXLoader::SCX_VERSION) + "\n"
-            "www.alekasm.com\n"
-           ).c_str(), "SimCopterX About", MB_ICONINFORMATION);
-          ::SetFocus(NULL);
-          UpdateWindow(HelpButton);
-        }*/
-        /*
-        else if ((HWND)lParam == verifyCheckbox)
-        {
-          ::SetFocus(NULL);
-          SendMessage((HWND)lParam, BM_GETCHECK, 0, 0);
-          //verifyInstallationValue = chkState == BST_CHECKED;
-        }
-        */
-
       }
     }
     return 0;

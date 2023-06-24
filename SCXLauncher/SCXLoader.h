@@ -26,6 +26,7 @@ struct SCXParameters
   bool fullscreen;
 };
 
+struct PatchInfo;
 class SCXLoader
 {
 public:
@@ -36,7 +37,8 @@ public:
   static bool StartSCX(SCXParameters);
   static bool GetValidInstallation();
   static bool FixMaxisHelpViewer(std::filesystem::path);
-  static constexpr unsigned int SCX_VERSION = 16;
+  static const PatchInfo& GetPatchInfo();
+  static constexpr unsigned int SCX_VERSION = 17;
 private:
   static bool GetFileCompatability(std::wstring);
 };

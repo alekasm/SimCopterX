@@ -25,4 +25,6 @@ private:
   static void RenderSimsFunction(DetourMaster*, GameVersions);
   static void PatchChopperDamageFunction(DetourMaster*, GameVersions);
   static void PatchEmergencyVehicleCrashOnRamp(DetourMaster*, GameVersions);
+  static void PatchHUnlock(DetourMaster*, GameVersions);
+  static void PatchAssertions(DetourMaster*, GameVersions);
 };

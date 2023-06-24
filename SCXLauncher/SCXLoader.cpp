@@ -1,10 +1,11 @@
 #include "SCXLoader.h"
 #include "Settings.h"
+#include "GameVersionInfo.h"
 
 std::string LastErrorString();
 MessageValue CreateMD5Hash(std::wstring);
 MessageValue VerifyOriginalGame(std::string, GameVersions&);
-MessageValue VerifyInstallationDirectory(std::wstring, std::filesystem::path&);
+MessageValue VerifyInstallationDirectory(const PatchInfo&, std::filesystem::path&);
 MessageValue VerifyInstallation(GameVersions version, std::filesystem::path);
 MessageValue CopyFileSafe(std::string source, std::string destination);
 
@@ -15,29 +16,13 @@ namespace
   const std::string PATCH_NAME = "SimCopterX";
   const std::wstring PATCH_NAMEW = L"SimCopterX";
   const std::string GAME_NAME = "SimCopter";
-
-  std::map<std::string, GameVersions> version_hashes =
-  {
-    {"6bc646d182ab8625a0d2394112334005", GameVersions::VCLASSICS},
-    {"90db54003aa9ba881543c9d2cd0dbfbf", GameVersions::V11SC},
-    {"d2f5c5eca71075696964d0f91b1163bf", GameVersions::V102_PATCH},
-    {"b296b26e922bc43705b49f7414d7218f", GameVersions::V11SC_FR},
-    {"17d5eba3e604229c4b87a68f20520b56", GameVersions::ORIGINAL},
-    {"1ea2ece4cf9b4e0ed3da217a31426795", GameVersions::V10_JP}
-  };
-
-  //The advertisted dates in techtips is wrong
-  std::map<GameVersions, std::string> version_description =
-  {
-    {GameVersions::VCLASSICS, "Classics Version (1.0.1.4) - 1 April 1997"},
-    {GameVersions::V11SC, "Version 1.1SC (1.0.1.0) - 8 December 1996"},
-    {GameVersions::ORIGINAL, "Version 1.0 (1.0.0.0) - 14 November 1996"},
-    {GameVersions::V102_PATCH, "Version 1.02 Patch (1.0.1.3) - 26 February 1997"},
-    {GameVersions::V11SC_FR, "Version 1.1SC (French) (1.0.1.0) - 9 December 1996"},
-    {GameVersions::V10_JP, "Version 1.0 (Japanese) (1.0.0.0) - 7 December 1996"}
-  };
   FileVersion fileVersion;
-  PatchInfo patch_info; 
+  PatchInfo patch_info;
+}
+
+const PatchInfo& SCXLoader::GetPatchInfo()
+{
+  return patch_info;
 }
 
 bool SCXLoader::GetValidInstallation()
@@ -103,8 +88,7 @@ MessageValue VerifyOriginalGame(std::string source, GameVersions& version)
   }
 
   MessageValue hash_check = CreateMD5Hash(std::wstring(source.begin(), source.end()));
-  auto it = version_hashes.find(hash_check.Message);
-  if (!hash_check.Value || it == version_hashes.end())
+  if (!hash_check.Value || !GetGameVersion(hash_check.Message, version))
   {
     std::string reason;
     if (hash_check.Value)
@@ -120,7 +104,6 @@ MessageValue VerifyOriginalGame(std::string source, GameVersions& version)
     return MessageValue(FALSE, reason);
   }
 
-  version = it->second;
   return MessageValue(TRUE, sfi_result);
 }
 
@@ -145,7 +128,7 @@ bool SCXLoader::InstallGame()
 
   MessageValue msg_verify;
   std::filesystem::path install_dir;
-  if (!(msg_verify = VerifyInstallationDirectory(patch_info.PatchedGameLocation, install_dir)).Value)
+  if (!(msg_verify = VerifyInstallationDirectory(patch_info, install_dir)).Value)
   {
     ShowMessage(PATCH_NAME + " Installation", msg_verify.Message);
     return false;
@@ -233,9 +216,13 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
 
   std::vector<Instructions> instructions = GameData::GenerateData(info, version);
   DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
-  DWORD res_address = Versions[version]->data.RES_TYPE;
   instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
-  instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
+  if (version != GameVersions::DEBUG)
+  {
+    BYTE resolutionMode = (params.resolution_mode);
+    DWORD res_address = Versions[version]->data.RES_TYPE;
+    instructions.push_back(DataValue(res_address, resolutionMode));
+  }
 
   if (!Patcher::Patch(info, instructions, exe_path.string()))
   {
@@ -254,13 +241,14 @@ bool SCXLoader::CreatePatchedGame(std::string game_location, SCXParameters param
   patch_info.PatchedGameLocation = exe_path.wstring();
   patch_info.PatcherVersion = SCX_VERSION;
   patch_info.PatchedGameVersion = version;
+  patch_info.PatchedGameIsInstalled = false;
   bool reg_result = Settings::SetPatchInfo(patch_info);
 
   std::string message = "";
   if (using_backup_copy)
-    message += "Used Backup:\n" + version_description[version] + "\n\n";
+    message += "Used Backup:\n" + CreateVersionString(version) + "\n\n";
   else
-    message += "Detected Version:\n" + version_description[version] + "\n\n";
+    message += "Detected Version:\n" + CreateVersionString(version) + "\n\n";
 
   message += "Patch location: \n" + game_location + "\n\n";
   if (reg_result)
@@ -281,8 +269,13 @@ void ClearPatchInfo(std::wstring reason)
   Settings::ClearPatchInfo();
 }
 
-MessageValue VerifyInstallationDirectory(std::wstring game_location, std::filesystem::path& install_dir)
+MessageValue VerifyInstallationDirectory(const PatchInfo& patchInfo, std::filesystem::path& install_dir)
 {
+  if (patchInfo.PatchedGameVersion == GameVersions::DEBUG)
+  { //This game does not come from a CD-ROM
+    return MessageValue(TRUE);
+  }
+  std::wstring game_location = patchInfo.PatchedGameLocation;
   std::filesystem::path exe_path;
   std::filesystem::path root_path;
   std::filesystem::path autorun_path;
@@ -391,9 +384,12 @@ bool SCXLoader::StartSCX(SCXParameters params)
 
   std::vector<Instructions> instructions;
   DWORD sleep_address = info.GetDetourVirtualAddress(DetourOffsetType::MY_SLEEP);
-  DWORD res_address = Versions[patch_info.PatchedGameVersion]->data.RES_TYPE;
   instructions.push_back(DataValue(sleep_address, BYTE(params.sleep_time)));
-  instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
+  if (patch_info.PatchedGameVersion != GameVersions::DEBUG)
+  {
+    DWORD res_address = Versions[patch_info.PatchedGameVersion]->data.RES_TYPE;
+    instructions.push_back(DataValue(res_address, BYTE(params.resolution_mode)));
+  }
 
   if (!Patcher::Patch(info, instructions, game_location.c_str()))
   {
@@ -437,7 +433,7 @@ bool SCXLoader::FixMaxisHelpViewer(std::filesystem::path path)
 void SCXLoader::LoadSettings()
 {
   patch_info = Settings::GetPatchInfo();
-  if (patch_info.PatcherVersion > 0)
+  if (patch_info.IsPatched())
   {
     VerifyPatchedGame();
   }
@@ -504,7 +500,10 @@ MessageValue CreateMD5Hash(std::wstring filename_wstring)
 
 MessageValue VerifyInstallation(GameVersions version, std::filesystem::path install_dir)
 {
-
+  if (version == GameVersions::DEBUG)
+  { //This version was not installed from a CD-ROM
+    return MessageValue(TRUE);
+  }
   std::filesystem::path game_dir = std::filesystem::path(patch_info.PatchedGameLocation);
   try
   {
@@ -525,10 +524,10 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
 
   std::map<GameVersions, std::vector<std::string>> dll_map =
   {
-    { GameVersions::ORIGINAL,	{"smackw32.dll"}},
-    { GameVersions::V10_JP,	  {"smackw32.dll"}},
-    { GameVersions::V11SC,		{"smackw32.dll"}},
-    { GameVersions::V11SC_FR,	{"smackw32.dll"}},
+    { GameVersions::ORIGINAL,   {"smackw32.dll"}},
+    { GameVersions::V10_JP,     {"smackw32.dll"}},
+    { GameVersions::V11SC,      {"smackw32.dll"}},
+    { GameVersions::V11SC_FR,   {"smackw32.dll"}},
     { GameVersions::V102_PATCH, {"sst1init.dll", "glide.dll", "smackw32.dll"}},
     { GameVersions::VCLASSICS,  {"sst1init.dll", "glide.dll", "smackw32.dll"}}
   };
@@ -538,7 +537,7 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
     std::filesystem::path dll_path = install_dir;
     std::filesystem::path dll_dest = game_dir;
     try
-    {      
+    {
       dll_path.append(dll_source[dll] + dll);
       dll_dest.append(dll);
       dll_path = std::filesystem::canonical(dll_path);
@@ -551,7 +550,7 @@ MessageValue VerifyInstallation(GameVersions version, std::filesystem::path inst
 
     if (!PathFileExistsA(dll_path.string().c_str()))
     {
-      std::string message = "Your game version is: \n" + version_description[version];
+      std::string message = "Your game version is: \n" + CreateVersionString(version);
       message += "\n\nWe could not find the required dll: " + dll + "\nExpected location:\n";
       message += dll_path.string() + "\n\n";
       message += "This usually happens if you are trying to mismatch game versions with different CDs. ";

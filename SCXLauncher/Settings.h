@@ -20,6 +20,7 @@ struct PatchInfo
   GameVersions PatchedGameVersion;
   bool PatchedGameIsInstalled = false;
   int PatcherVersion = -1;
+  const bool IsPatched() const { return PatcherVersion > 0; };
 };
 
 struct SettingsInfo
